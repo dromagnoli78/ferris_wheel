@@ -28,7 +28,7 @@ DFRobotDFPlayerMini mp3Player;
 ButtonController buttonController = ButtonController();
 LedController ledController = LedController(&buttonController);
 StepperController stepperController = StepperController(200, 100, &buttonController);
-//MusicController musicController = MusicController(&buttonController);
+MusicController musicController = MusicController(&buttonController);
 
 void setup() {
   Serial.begin(9600);
@@ -47,7 +47,7 @@ void setup() {
   }
   Serial.println(F("Ready DFPlayer Mini"));
   Serial.println("Setting Up!");
-//  musicController.begin();
+  musicController.begin(&mp3Player);
   stepperController.begin();
   ledController.begin();
 }
@@ -74,7 +74,7 @@ void initialize(){
   Serial.println("Initializing!");
   buttonController.init();
   stepperController.init();
- // musicController.init();
+  musicController.init();
   ledController.init();
   mp3Player.enableLoopAll();
   mp3Player.volume(3);
@@ -88,7 +88,7 @@ void workingmode(){
      loop();
    }
   // buttonController.operate();
-  // musicController.operate();
+   musicController.operate();
    stepperController.operate();
    ledController.operate();
 }

@@ -2,6 +2,9 @@
 #define StepperController_h
 
 #include <CheapStepper.h>
+
+#define INCREMENT 3
+
 class StepperController {
   private:
     const int stepsPerRevolution;
@@ -9,7 +12,7 @@ class StepperController {
     ButtonController* buttonController;
     CheapStepper* stepper;
     boolean moveClockwise = true;
-    long deltaTime = 100;
+    long deltaTime = 50;
     long lastTime;
   public:
     void init();
@@ -39,7 +42,7 @@ void StepperController::init(){
 void StepperController::operate(){
   long time = millis();
   if ((time - this->lastTime) > deltaTime) {
-   stepper->moveDegrees(true, 1);
+   stepper->moveCW(INCREMENT);
     this->lastTime = millis();
   }
   

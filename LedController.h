@@ -32,12 +32,18 @@ CRGBArray<NUM_LEDS> ledsArr;
 #define LIGH_SENSOR_PIN 99999
 
 
+class Sequence {
+  public:
+     void next();
+}
+
 class LedController {
   private:
    const int dsPin;
     CRGBPalette16 currentPalette;
     TBlendType    currentBlending;
     ButtonController* buttonController;
+    Sequence sequence;
 
   public:
     LedController(ButtonController *pButtonController){
@@ -90,6 +96,7 @@ void LedController::operate()
 
   FastLED.show();
 }
+
 
 
 
