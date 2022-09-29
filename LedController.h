@@ -15,9 +15,7 @@ FASTLED_USING_NAMESPACE
 #define COLOR_ORDER GRB
 #define NUM_LEDS    8
 #define PATTERN_PERIOD 12
-CRGB leds[NUM_LEDS];
 
-CRGBArray<NUM_LEDS> ledsArr;
 
 #define TEMPERATURE_1 Tungsten100W
 #define TEMPERATURE_2 OvercastSky
@@ -29,13 +27,10 @@ CRGBArray<NUM_LEDS> ledsArr;
 
 #define BRIGHTNESS          96
 #define FRAMES_PER_SECOND  45
-#define LIGH_SENSOR_PIN 99999
+#define LIGHT_SENSOR_PIN 99999
 
+#define COLOR_PATTERNS  6
 
-class Sequence {
-  public:
-     void next();
-}
 
 class LedController {
   private:
@@ -43,15 +38,30 @@ class LedController {
     CRGBPalette16 currentPalette;
     TBlendType    currentBlending;
     ButtonController* buttonController;
-    Sequence sequence;
-
+    //DisplayController* displayController;
+    long lastTimeOnButtonControl;
+    long deltaTimeOnButtonControl = 50;
+    long deltaTimeOnLedChange = 100;
+    long deltaTimeWhenSequence = 200;
+    CRGB leds[NUM_LEDS];
+    CRGBArray<NUM_LEDS> ledsArr;
+    CRGB colorPattern[6];
+    int currentColorPattern = 0;
+    long lastTimeOnLedUpdate;
+    long lastTimeOnSequenceUpdate;
+    int pattern;
+    int ledInSequence=0;
+    bool sequenceUp = true;
   public:
-    LedController(ButtonController *pButtonController){
+    LedController(ButtonController *pButtonController/*, DisplayController* pDisplayController*/){
       buttonController = pButtonController;
+      //displayController = pDisplayController;
       };
   void init();  
   void begin();
   void operate();
+  void singleLedSequence();
+  void growingLedSequence();
 };
 
 void LedController::begin() {
@@ -66,11 +76,96 @@ void LedController::begin() {
 }
 
 void LedController::init() {
-  
+  long time = millis();
+  lastTimeOnButtonControl = time;
+  lastTimeOnSequenceUpdate = time;
+  colorPattern[0]=CRGB::Red;
+  colorPattern[1]=CRGB::Purple;
+  colorPattern[2]=CRGB::Blue;
+  colorPattern[3]=CRGB::Cyan;
+  colorPattern[4]=CRGB::Green;
+  colorPattern[5]=CRGB::Yellow;
+  pattern = 1;
 }
 
 void LedController::operate()
 {
+  long time = millis();
+  if (time - lastTimeOnLedUpdate > deltaTimeOnLedChange) {
+    bool isColorChanged = buttonController -> isColorChanged();
+    if (isColorChanged) {
+      //displayController -> displayMessage("Verde");
+      currentColorPattern++;
+      lastTimeOnLedUpdate=time;
+      currentColorPattern = currentColorPattern % COLOR_PATTERNS;
+      buttonController -> setColorChanged(false);
+    }
+
+    switch(pattern){
+      case 0:
+        singleLedSequence();
+        break;
+      case 1:
+        growingLedSequence();
+        break;
+    }
+    FastLED.show();
+
+  }
+}
+
+void LedController::singleLedSequence() {
+  long time = millis();
+  if (time - lastTimeOnSequenceUpdate > deltaTimeWhenSequence) {
+     for(int i=0; i<NUM_LEDS; i++) {
+      leds[i] = CRGB::Black;
+     }
+     leds[ledInSequence] = colorPattern[currentColorPattern];
+     ledInSequence++;
+     ledInSequence %= NUM_LEDS;
+     lastTimeOnSequenceUpdate = time;
+  
+  }
+}
+  void LedController::growingLedSequence() {
+  long time = millis();
+  if (time - lastTimeOnSequenceUpdate > deltaTimeWhenSequence) {
+    if (sequenceUp){
+      for(int i=0; i<=ledInSequence; i++) {
+        leds[i] = colorPattern[currentColorPattern];
+      }
+      for(int i=ledInSequence+1; i<NUM_LEDS; i++) {
+        leds[i] = CRGB::Black;
+      }
+       ledInSequence++;
+     if (ledInSequence == NUM_LEDS) {
+       sequenceUp = false;
+       ledInSequence--;
+     }
+
+    } else {
+      for(int i=NUM_LEDS-1; i>=ledInSequence; i--) {
+        leds[i] = colorPattern[currentColorPattern];
+      }
+      for(int i=ledInSequence; i>=0; i--) {
+        leds[i] = CRGB::Black;
+      }
+       ledInSequence--;
+
+
+      if (ledInSequence == -1) {
+       sequenceUp = true;
+       ledInSequence = 0;
+     }
+    }
+     
+     lastTimeOnSequenceUpdate = time;
+  
+  }
+}
+
+
+  /*
     // Waves for LED position
   uint8_t posBeat  = beatsin8(30, 0, NUM_LEDS - 1, 0, 0);
   uint8_t posBeat2 = beatsin8(60, 0, NUM_LEDS - 1, 0, 0);
@@ -95,7 +190,7 @@ void LedController::operate()
   fadeToBlackBy(leds, NUM_LEDS, 10);
 
   FastLED.show();
-}
+  }
 
 
 
@@ -108,6 +203,7 @@ void LedController::operate()
 // Additionally, you can manually define your own color palettes, or you can write
 // code that creates color palettes on the fly.  All are shown here.
 
+*/
 
 
 

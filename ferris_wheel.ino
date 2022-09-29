@@ -2,6 +2,7 @@
 #include "LedController.h"
 #include "MusicController.h"
 #include "StepperController.h"
+#include "DisplayController.h"
 
 
 /**
@@ -26,9 +27,11 @@ SoftwareSerial mySoftwareSerial(RX_PIN, TX_PIN);
 DFRobotDFPlayerMini mp3Player;
 
 ButtonController buttonController = ButtonController();
+DisplayController displayController = DisplayController(&buttonController);
 LedController ledController = LedController(&buttonController);
 StepperController stepperController = StepperController(200, 100, &buttonController);
 MusicController musicController = MusicController(&buttonController);
+
 
 void setup() {
   Serial.begin(9600);
@@ -50,6 +53,7 @@ void setup() {
   musicController.begin(&mp3Player);
   stepperController.begin();
   ledController.begin();
+  displayController.begin();
 }
 
 void loop(){
@@ -76,6 +80,7 @@ void initialize(){
   stepperController.init();
   musicController.init();
   ledController.init();
+  displayController.init();
   mp3Player.enableLoopAll();
   mp3Player.volume(3);
   mp3Player.play(2);
@@ -87,8 +92,9 @@ void workingmode(){
    if (mode==START_MODE) {
      loop();
    }
-  // buttonController.operate();
+   buttonController.operate();
+   displayController.operate();
    musicController.operate();
-   stepperController.operate();
    ledController.operate();
+   stepperController.operate();
 }
