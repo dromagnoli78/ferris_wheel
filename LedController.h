@@ -2,6 +2,7 @@
 #define LedController_h
 
 #include <FastLED.h>
+#include "DisplayController.h"
 
 FASTLED_USING_NAMESPACE
 
@@ -30,6 +31,7 @@ FASTLED_USING_NAMESPACE
 #define LIGHT_SENSOR_PIN 99999
 
 #define COLOR_PATTERNS  6
+#define SEQUENCE_PATTERNS 2
 
 
 class LedController {
@@ -37,8 +39,8 @@ class LedController {
    const int dsPin;
     CRGBPalette16 currentPalette;
     TBlendType    currentBlending;
-    ButtonController* buttonController;
-    //DisplayController* displayController;
+    CommandsController* commandsController;
+    DisplayController* displayController;
     long lastTimeOnButtonControl;
     long deltaTimeOnButtonControl = 50;
     long deltaTimeOnLedChange = 100;
@@ -53,16 +55,28 @@ class LedController {
     int ledInSequence=0;
     bool sequenceUp = true;
   public:
-    LedController(ButtonController *pButtonController/*, DisplayController* pDisplayController*/){
-      buttonController = pButtonController;
-      //displayController = pDisplayController;
+    LedController(CommandsController *pCommandsController, DisplayController* pDisplayController){
+      commandsController = pCommandsController;
+      displayController = pDisplayController;
       };
   void init();  
   void begin();
   void operate();
   void singleLedSequence();
   void growingLedSequence();
+  String lookupColorPattern(int currentColor);
 };
+
+String LedController::lookupColorPattern(int currentColor) {
+  if (currentColor == CRGB::Yellow) return "Giallo";
+  if (currentColor == CRGB::Green) return "Verde";
+  if (currentColor == CRGB::Blue) return "Blu";
+  if (currentColor == CRGB::Cyan) return "Azzurro";
+  if (currentColor == CRGB::Purple) return "Viola";
+  if (currentColor == CRGB::Red) return "Rosso";
+
+
+}
 
 void LedController::begin() {
   Serial.println("LedController begin");
@@ -79,26 +93,34 @@ void LedController::init() {
   long time = millis();
   lastTimeOnButtonControl = time;
   lastTimeOnSequenceUpdate = time;
-  colorPattern[0]=CRGB::Red;
-  colorPattern[1]=CRGB::Purple;
-  colorPattern[2]=CRGB::Blue;
-  colorPattern[3]=CRGB::Cyan;
-  colorPattern[4]=CRGB::Green;
-  colorPattern[5]=CRGB::Yellow;
+  colorPattern[0]=CRGB::Yellow;
+  colorPattern[1]=CRGB::Red;
+  colorPattern[2]=CRGB::Purple;
+  colorPattern[3]=CRGB::Blue;
+  colorPattern[4]=CRGB::Cyan;
+  colorPattern[5]=CRGB::Green;
+
   pattern = 1;
+  FastLED.clearData();
+  FastLED.show();
+
 }
 
 void LedController::operate()
 {
   long time = millis();
   if (time - lastTimeOnLedUpdate > deltaTimeOnLedChange) {
-    bool isColorChanged = buttonController -> isColorChanged();
+    bool isColorChanged = commandsController -> isColorChanged();
     if (isColorChanged) {
-      //displayController -> displayMessage("Verde");
+      currentColorPattern = currentColorPattern % COLOR_PATTERNS;
+      displayController -> displayMessage(lookupColorPattern(currentColorPattern));
       currentColorPattern++;
       lastTimeOnLedUpdate=time;
-      currentColorPattern = currentColorPattern % COLOR_PATTERNS;
-      buttonController -> setColorChanged(false);
+      commandsController -> setColorChanged(false);
+    } else if (commandsController -> isSequenceChanged()) {
+      pattern++;
+      pattern%=SEQUENCE_PATTERNS;
+      commandsController -> setSequenceChanged(false);
     }
 
     switch(pattern){

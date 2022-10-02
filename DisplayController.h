@@ -20,11 +20,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 class DisplayController {
   private:
-    const int stepsPerRevolution;
-    const int stSpeed;
-    ButtonController* buttonController;
-    CheapStepper* stepper;
-    boolean moveClockwise = true;
+    CommandsController* commandsController;
     long deltaTime = 300;
     long deltaTimeOnButtonControl = 50;
     long lastTime;
@@ -33,9 +29,9 @@ class DisplayController {
     void init();
     void begin();
     void operate();
-    void displayMessage(char* );
-    DisplayController(ButtonController *pButtonController){
-      buttonController = pButtonController;
+    void displayMessage(const String & message);
+    DisplayController(CommandsController *pCommandsController){
+      commandsController = pCommandsController;
       lastTime = millis();
     };
 
@@ -56,20 +52,8 @@ void DisplayController::init(){
   display.display();
 }
 
-void DisplayController::operate(){
-  long time = millis();
-  if (time - lastTimeOnButtonControl > deltaTimeOnButtonControl) {
-    buttonController -> isColorChanged();
-    
-  }
-  if (time - lastTime > deltaTime) {
-    //Serial.println("operating");
-  }
-  
-}
-
-void DisplayController::displayMessage(char * message) {
-  //display.println(F(message));
+void DisplayController::displayMessage(const String & message) {
+  display.println(message);
 }
   
 

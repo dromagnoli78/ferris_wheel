@@ -9,7 +9,7 @@ class StepperController {
   private:
     const int stepsPerRevolution;
     const int stSpeed;
-    ButtonController* buttonController;
+    CommandsController* commandsController;
     CheapStepper* stepper;
     boolean moveClockwise = true;
     long deltaTime = 50;
@@ -18,9 +18,9 @@ class StepperController {
     void init();
   void begin();
   void operate();
-    StepperController(const int iStepsPerRevolution, const int iStSpeed, ButtonController *pButtonController):
+    StepperController(const int iStepsPerRevolution, const int iStSpeed, CommandsController *pCommandsController):
     stepsPerRevolution(iStepsPerRevolution), stSpeed(iStSpeed){
-      buttonController = pButtonController;
+      commandsController = pCommandsController;
       lastTime = millis();
     };
 

@@ -1,4 +1,4 @@
-#include "ButtonController.h"
+#include "CommandsController.h"
 #include "LedController.h"
 #include "MusicController.h"
 #include "StepperController.h"
@@ -26,11 +26,11 @@ int mode = START_MODE;
 SoftwareSerial mySoftwareSerial(RX_PIN, TX_PIN);
 DFRobotDFPlayerMini mp3Player;
 
-ButtonController buttonController = ButtonController();
-DisplayController displayController = DisplayController(&buttonController);
-LedController ledController = LedController(&buttonController);
-StepperController stepperController = StepperController(200, 100, &buttonController);
-MusicController musicController = MusicController(&buttonController);
+CommandsController commandsController = CommandsController();
+DisplayController displayController = DisplayController(&commandsController);
+LedController ledController = LedController(&commandsController, &displayController);
+StepperController stepperController = StepperController(200, 100, &commandsController);
+MusicController musicController = MusicController(&commandsController);
 
 
 void setup() {
@@ -76,7 +76,7 @@ void loop(){
 void initialize(){
   mode=WORKING_MODE;
   Serial.println("Initializing!");
-  buttonController.init();
+  commandsController.init();
   stepperController.init();
   musicController.init();
   ledController.init();
@@ -92,8 +92,8 @@ void workingmode(){
    if (mode==START_MODE) {
      loop();
    }
-   buttonController.operate();
-   displayController.operate();
+   commandsController.operate();
+   //displayController.operate();
    musicController.operate();
    ledController.operate();
    stepperController.operate();

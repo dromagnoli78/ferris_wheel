@@ -23,12 +23,12 @@ class MusicController {
     long lastVolumeCheckTime;
     long lastPlayCheckTime;
     DFRobotDFPlayerMini* mp3Player;
-    ButtonController* buttonController;
+    CommandsController* commandsController;
 
   public:
-    MusicController(ButtonController *pButtonController){
+    MusicController(CommandsController *pCommandsController){
       Serial.println("MusicController constructor");
-      buttonController = pButtonController;
+      commandsController = pCommandsController;
     };
   void init();
   void begin(DFRobotDFPlayerMini* pMp3Player);
@@ -64,8 +64,8 @@ void MusicController::operate(){
     lastVolumeCheckTime = time;
   }
   if ((time - lastPlayCheckTime) > (DELTA_TIME*10)) {
-    if (!isPlaying /*|| buttonController->isNextSongRequested()*/) {
-    buttonController->setNextSongRequested(false);
+    if (!isPlaying /*|| commandsController->isNextSongRequested()*/) {
+    commandsController->setNextSongRequested(false);
     mp3Player->play(currentTrack);
     isPlaying = true;
     currentTrack++;
