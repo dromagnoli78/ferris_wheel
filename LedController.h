@@ -37,8 +37,6 @@ class LedController {
    const int dsPin;
     CRGBPalette16 currentPalette;
     TBlendType    currentBlending;
-    ButtonController* buttonController;
-    //DisplayController* displayController;
     long lastTimeOnButtonControl;
     long deltaTimeOnButtonControl = 50;
     long deltaTimeOnLedChange = 100;
@@ -53,8 +51,8 @@ class LedController {
     int ledInSequence=0;
     bool sequenceUp = true;
   public:
-    LedController(ButtonController *pButtonController/*, DisplayController* pDisplayController*/){
-      buttonController = pButtonController;
+    LedController(/*ButtonController pButtonController, DisplayController* pDisplayController*/){
+      //buttonController = pButtonController;
       //displayController = pDisplayController;
       };
   void init();  
@@ -92,13 +90,14 @@ void LedController::operate()
 {
   long time = millis();
   if (time - lastTimeOnLedUpdate > deltaTimeOnLedChange) {
-    bool isColorChanged = buttonController -> isColorChanged();
+   // bool isColorChanged = buttonController -> isColorChanged();
+   bool isColorChanged = true;
     if (isColorChanged) {
       //displayController -> displayMessage("Verde");
       currentColorPattern++;
       lastTimeOnLedUpdate=time;
       currentColorPattern = currentColorPattern % COLOR_PATTERNS;
-      buttonController -> setColorChanged(false);
+    //  buttonController -> setColorChanged(false);
     }
 
     switch(pattern){
