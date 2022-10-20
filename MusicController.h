@@ -30,19 +30,23 @@ class MusicController {
 
   public:
     MusicController(){
-      Serial.println("MusicController constructor");
+
     };
     void init();
     void begin(DFRobotDFPlayerMini* pMp3Player);
     void operate();
     void adjustVolume();
-    bool triggerVolume();
+    void nextSong();
+    bool triggerMute();
 };
 
 void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
-  Serial.println("MusicController begin");
+  
+  if (CURRENT_MODE == DEBUG_MODE)
+    Serial.begin(9600);
+    Serial.println("MusicController begin");
   mp3Player = pMp3Player;
-  Serial.begin(9600);
+ 
 }
 
 void MusicController::init(){
@@ -99,7 +103,7 @@ void MusicController::operate(){
   }
 }
 
-bool MusicController::triggerVolume() {
+bool MusicController::triggerMute() {
   volumeTriggered = true;
   return isMuted;
 }

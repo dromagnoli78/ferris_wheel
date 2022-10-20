@@ -34,7 +34,8 @@ bool StepperController::triggerMovement() {
 }
 
 void StepperController::begin() {
-  Serial.println("StepperController begin");
+  if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("StepperController begin");
   stepper = new CheapStepper();
   stepper->setRpm(20); 
 }

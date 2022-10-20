@@ -1,69 +1,59 @@
-#include "Arduino.h"
 #ifndef ButtonController_h
 #define ButtonController_h
 
-
-#define COLOR_SWITCH_PIN 2
-
+#include "Arduino.h"
+#include "Constants.h"
+#include "ButtonInfo.h"
 
 class ButtonController {
-  private:
-    // const int variousPins;
-    bool colorChanged = true;
-    long deltaTimeOnColorSwitch;
-    long lastTimeOnColorSwitchCheck;
-  public:
-    ButtonController(){
-    };
+private:
+
+  ButtonInfo* buttonLights;
+  ButtonInfo* buttonMute;
+  ButtonInfo* buttonStepper;
+  ButtonInfo* buttonSleeping;
+
+public:
+  ButtonController() {
+    buttonLights = &ButtonInfo(BUTTON_LED_SEQUENCE);
+    buttonMute = &ButtonInfo(BUTTON_MUTE);
+    buttonStepper = &ButtonInfo(BUTTON_WHEEL_ROTATION);
+    buttonSleeping = &ButtonInfo(BUTTON_SLEEPING);
+  };
   void init();
   void begin();
   void operate();
-  bool isNextSongRequested();
-  bool isColorChanged();
-  void setColorChanged(bool);
-  void setNextSongRequested(int);
+  ButtonInfo* lights() {
+    return buttonLights;
+  };
+  ButtonInfo* mute() {
+    return buttonMute;
+  };
+  ButtonInfo* stepper(){return buttonStepper;};
+  ButtonInfo* sleeping() {
+    return buttonSleeping;
+  };
 };
 
 
 
 void ButtonController::begin() {
-  Serial.println("ButtonController begin");
-  pinMode(COLOR_SWITCH_PIN, INPUT);
+  if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("ButtonController begin");
+  buttonLights->begin();
+  buttonMute->begin();
+  buttonSleeping->begin();
+  buttonStepper->begin();
 }
 
-void ButtonController::init(){
-  deltaTimeOnColorSwitch = 200;
-  long time = millis();
-  lastTimeOnColorSwitchCheck = time;
-  
+void ButtonController::init() {
 }
 
-bool ButtonController::isNextSongRequested(){
-  return true;
-}
-
-void ButtonController::setNextSongRequested(int i){
-  ;
-}
-
-bool ButtonController::isColorChanged(){
-  return colorChanged;
-}
-
-void ButtonController::setColorChanged(bool isChanged) {
-  colorChanged = isChanged;
-}
-
-void ButtonController::operate(){
-  long time = millis();
-  int colorSwitch = digitalRead(COLOR_SWITCH_PIN);
-  if (colorSwitch == HIGH) {
-    if ((time - lastTimeOnColorSwitchCheck) > deltaTimeOnColorSwitch) {
-        setColorChanged(true);
-        lastTimeOnColorSwitchCheck = time;
-    }
-  }
-  
+void ButtonController::operate() {
+  buttonSleeping->operate();
+  buttonStepper->operate();
+  buttonMute->operate();
+  buttonLights->operate();
 }
 
 

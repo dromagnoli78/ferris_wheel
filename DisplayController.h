@@ -29,6 +29,8 @@ class DisplayController {
     void begin();
     void operate();
     void displayMessage(char* );
+    void nextSong();
+
     DisplayController(){
       lastTime = millis();
     };
@@ -65,7 +67,11 @@ void DisplayController::operate(){
 void DisplayController::displayMessage(char * message) {
   //display.println(F(message));
 }
-  
+
+ void DisplayController::nextSong() {
+  //display.println(F(message));
+}
+   
 
 
 #endif

@@ -1,21 +1,7 @@
 #ifndef LedController_h
 #define LedController_h
 
-#include <FastLED.h>
-
-FASTLED_USING_NAMESPACE
-
-#if defined(FASTLED_VERSION) && (FASTLED_VERSION < 3001000)
-#warning "Requires FastLED 3.1 or later; check github for latest code."
-#endif
-
-
-#define DATA_PIN    5
-#define LED_TYPE    WS2812B
-#define COLOR_ORDER GRB
-#define NUM_LEDS    8
-#define PATTERN_PERIOD 12
-
+#include "Constants.h"
 
 #define TEMPERATURE_1 Tungsten100W
 #define TEMPERATURE_2 OvercastSky
@@ -25,7 +11,6 @@ FASTLED_USING_NAMESPACE
 // How many seconds to show black between switches
 #define BLACKTIME   3
 
-#define BRIGHTNESS          96
 #define FRAMES_PER_SECOND  45
 #define LIGHT_SENSOR_PIN 99999
 
@@ -34,15 +19,17 @@ FASTLED_USING_NAMESPACE
 
 class LedController {
   private:
-   const int dsPin;
+    
+    const int dsPin = WHEEL_LIGHTS_DATA_PIN;
+    const int numLeds = WHEEL_NUM_LEDS;
     CRGBPalette16 currentPalette;
     TBlendType    currentBlending;
     long lastTimeOnButtonControl;
     long deltaTimeOnButtonControl = 50;
     long deltaTimeOnLedChange = 100;
     long deltaTimeWhenSequence = 200;
-    CRGB leds[NUM_LEDS];
-    CRGBArray<NUM_LEDS> ledsArr;
+    CRGB leds[WHEEL_NUM_LEDS];
+    CRGBArray<WHEEL_NUM_LEDS> ledsArr;
     CRGB colorPattern[6];
     int currentColorPattern = 0;
     long lastTimeOnLedUpdate;
@@ -51,13 +38,15 @@ class LedController {
     int ledInSequence=0;
     bool sequenceUp = true;
   public:
-    LedController(/*ButtonController pButtonController, DisplayController* pDisplayController*/){
+    LedController(/*ButtonController pButtonController, DisplayController* pDisplayController*/)
+    {
       //buttonController = pButtonController;
       //displayController = pDisplayController;
       };
   void init();  
   void begin();
   void operate();
+  void nextSequence(){};
   void singleLedSequence();
   void growingLedSequence();
 };
@@ -67,7 +56,7 @@ void LedController::begin() {
   delay(3000); // 3 second delay for recovery
   
   // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE,WHEEL_LIGHTS_DATA_PIN,COLOR_ORDER>(leds, numLeds).setCorrection(TypicalLEDStrip);
   
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
@@ -116,12 +105,12 @@ void LedController::operate()
 void LedController::singleLedSequence() {
   long time = millis();
   if (time - lastTimeOnSequenceUpdate > deltaTimeWhenSequence) {
-     for(int i=0; i<NUM_LEDS; i++) {
+     for(int i=0; i<numLeds; i++) {
       leds[i] = CRGB::Black;
      }
      leds[ledInSequence] = colorPattern[currentColorPattern];
      ledInSequence++;
-     ledInSequence %= NUM_LEDS;
+     ledInSequence %= numLeds;
      lastTimeOnSequenceUpdate = time;
   
   }
@@ -133,17 +122,17 @@ void LedController::singleLedSequence() {
       for(int i=0; i<=ledInSequence; i++) {
         leds[i] = colorPattern[currentColorPattern];
       }
-      for(int i=ledInSequence+1; i<NUM_LEDS; i++) {
+      for(int i=ledInSequence+1; i<numLeds; i++) {
         leds[i] = CRGB::Black;
       }
        ledInSequence++;
-     if (ledInSequence == NUM_LEDS) {
+     if (ledInSequence == numLeds) {
        sequenceUp = false;
        ledInSequence--;
      }
 
     } else {
-      for(int i=NUM_LEDS-1; i>=ledInSequence; i--) {
+      for(int i=numLeds-1; i>=ledInSequence; i--) {
         leds[i] = colorPattern[currentColorPattern];
       }
       for(int i=ledInSequence; i>=0; i--) {

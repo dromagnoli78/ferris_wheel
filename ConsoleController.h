@@ -3,11 +3,12 @@
 
 #include "Constants.h"
 #include "ButtonController.h"
+#include "ButtonInfo.h"
 #include "LedController.h"
 #include "MusicController.h"
 #include "StepperController.h"
 #include "DisplayController.h"
-#include "ConsoleLedController.h"
+#include "ConsoleLightsController.h"
 
 
 
@@ -18,12 +19,14 @@ class ConsoleController {
     MusicController* musicController;
     StepperController *stepperController;
     DisplayController *displayController;
-    ConsoleLedController* consoleLedController;
+    ConsoleLightsController* consoleLightsController;
+    bool isSleeping;
+    bool isStepping;
 
   public:
     ConsoleController(
       LedController* pLedController,
-      ConsoleLedController* pConsoleLedController, 
+      //ConsoleLedController* pConsoleLedController, 
       MusicController* pMusicController, 
       StepperController* pStepperController, 
       DisplayController* pDisplayController, 
@@ -31,7 +34,7 @@ class ConsoleController {
       
       ledController = pLedController;
       buttonsController = pButtonsController;
-      consoleLedController = pConsoleLedController;
+      //consoleLedController = pConsoleLedController;
       musicController = pMusicController;
       stepperController = pStepperController;
       displayController = pDisplayController;
@@ -41,5 +44,54 @@ class ConsoleController {
   void operate();
 };
 
+void ConsoleController::begin() {
+}
 
-#endif ConsoleController_h
+void ConsoleController::init() {
+}
+
+void ConsoleController::operate() {
+  bool isMuted = false;
+  
+  ButtonInfo* muted = buttonsController->mute();
+  if (muted->isClicked()) {
+    isMuted = musicController->triggerMute();
+    muted->reset();
+    consoleLightsController -> mute(isMuted);
+  }
+
+  ButtonInfo* sleeping = buttonsController->sleeping();
+  if (sleeping->isClicked()) {
+    isSleeping = !isSleeping;
+    consoleLightsController->sleeping(isSleeping);
+    sleeping->reset();
+  }
+/*
+  ButtoInfo* music = buttonsController->music();
+  if (music->isClicked()) {
+    musicController->nextSong();
+    music->reset();
+    displayController->nextSong();
+  }
+*/
+  ButtonInfo* stepper = buttonsController->stepper();
+  if (stepper->isClicked()) {
+    isStepping = !isStepping;
+    stepper->reset();
+    consoleLightsController -> stepper(isStepping);
+  }
+
+
+  ButtonInfo* lights = buttonsController->lights();
+  if (lights->isClicked()) {
+    ledController->nextSequence();
+    lights->reset();
+    consoleLightsController -> lights(isMuted);
+  }
+
+
+ 
+  
+}
+
+#endif
