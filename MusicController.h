@@ -19,11 +19,10 @@ class MusicController {
     bool isPlaying = false;
     bool isMuted = false;
     bool volumeTriggered = false;
-    const bool debug;
     int lastTrack;
     int currentTrack;
-    int volume;
-    int previousVolume;
+    int8_t volume;
+    int8_t previousVolume;
     long lastVolumeCheckTime;
     long lastPlayCheckTime;
     DFRobotDFPlayerMini* mp3Player;
@@ -42,9 +41,9 @@ class MusicController {
 
 void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
   
-  if (CURRENT_MODE == DEBUG_MODE)
-    Serial.begin(9600);
+  if (CURRENT_MODE == DEBUG_MODE) {
     Serial.println("MusicController begin");
+  }
   mp3Player = pMp3Player;
  
 }

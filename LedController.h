@@ -19,9 +19,6 @@
 
 class LedController {
   private:
-    
-    const int dsPin = WHEEL_LIGHTS_DATA_PIN;
-    const int numLeds = WHEEL_NUM_LEDS;
     CRGBPalette16 currentPalette;
     TBlendType    currentBlending;
     long lastTimeOnButtonControl;
@@ -52,11 +49,12 @@ class LedController {
 };
 
 void LedController::begin() {
-  Serial.println("LedController begin");
+  if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("LedController begin");
   delay(3000); // 3 second delay for recovery
   
   // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,WHEEL_LIGHTS_DATA_PIN,COLOR_ORDER>(leds, numLeds).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE,WHEEL_LIGHTS_DATA_PIN,COLOR_ORDER>(leds, WHEEL_NUM_LEDS).setCorrection(TypicalLEDStrip);
   
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
@@ -105,12 +103,12 @@ void LedController::operate()
 void LedController::singleLedSequence() {
   long time = millis();
   if (time - lastTimeOnSequenceUpdate > deltaTimeWhenSequence) {
-     for(int i=0; i<numLeds; i++) {
+     for(int i=0; i<WHEEL_NUM_LEDS; i++) {
       leds[i] = CRGB::Black;
      }
      leds[ledInSequence] = colorPattern[currentColorPattern];
      ledInSequence++;
-     ledInSequence %= numLeds;
+     ledInSequence %= WHEEL_NUM_LEDS;
      lastTimeOnSequenceUpdate = time;
   
   }
@@ -122,17 +120,17 @@ void LedController::singleLedSequence() {
       for(int i=0; i<=ledInSequence; i++) {
         leds[i] = colorPattern[currentColorPattern];
       }
-      for(int i=ledInSequence+1; i<numLeds; i++) {
+      for(int i=ledInSequence+1; i<WHEEL_NUM_LEDS; i++) {
         leds[i] = CRGB::Black;
       }
        ledInSequence++;
-     if (ledInSequence == numLeds) {
+     if (ledInSequence == WHEEL_NUM_LEDS) {
        sequenceUp = false;
        ledInSequence--;
      }
 
     } else {
-      for(int i=numLeds-1; i>=ledInSequence; i--) {
+      for(int i=WHEEL_NUM_LEDS-1; i>=ledInSequence; i--) {
         leds[i] = colorPattern[currentColorPattern];
       }
       for(int i=ledInSequence; i>=0; i--) {

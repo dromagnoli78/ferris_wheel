@@ -21,23 +21,22 @@ class ConsoleController {
     DisplayController *displayController;
     ConsoleLightsController* consoleLightsController;
     bool isSleeping;
-    bool isStepping;
 
   public:
     ConsoleController(
       LedController* pLedController,
-      //ConsoleLedController* pConsoleLedController, 
       MusicController* pMusicController, 
       StepperController* pStepperController, 
       DisplayController* pDisplayController, 
-      ButtonController* pButtonsController){
+      ButtonController* pButtonsController,
+      ConsoleLightsController* pConsoleLightsController){
       
       ledController = pLedController;
       buttonsController = pButtonsController;
-      //consoleLedController = pConsoleLedController;
       musicController = pMusicController;
       stepperController = pStepperController;
       displayController = pDisplayController;
+      consoleLightsController = pConsoleLightsController;
       };
   void init();  
   void begin();
@@ -76,9 +75,9 @@ void ConsoleController::operate() {
 */
   ButtonInfo* stepper = buttonsController->stepper();
   if (stepper->isClicked()) {
-    isStepping = !isStepping;
+    bool isStopped = stepperController -> triggerMovement();
     stepper->reset();
-    consoleLightsController -> stepper(isStepping);
+    consoleLightsController -> stepper(isStopped);
   }
 
 

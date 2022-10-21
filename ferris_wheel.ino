@@ -24,7 +24,7 @@
 
 long t = 0;
 bool debug = true;
-int mode = START_MODE;
+int8_t mode = START_MODE;
 SoftwareSerial mySoftwareSerial(RX_PIN, TX_PIN);
 DFRobotDFPlayerMini mp3Player;
 
@@ -36,7 +36,7 @@ LedController ledController = LedController();
 StepperController stepperController = StepperController(200, 100);
 MusicController musicController = MusicController();
 
-ConsoleController consoleController = ConsoleController(&ledController, /*&consoleLedController,*/ &musicController, &stepperController, &displayController, &buttonsController);
+ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
 
 
 void setup() {

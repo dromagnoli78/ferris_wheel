@@ -4,16 +4,14 @@
 #include "Constants.h"
 #include <CheapStepper.h>
 
-#define INCREMENT 3
-
 class StepperController {
   private:
-    const int stepsPerRevolution;
+    const int8_t stepsPerRevolution;
     const int stSpeed;
     bool moveTriggered = false;
     bool isStopped = false;
     CheapStepper* stepper;
-    boolean moveClockwise = true;
+    bool moveClockwise = true;
     long deltaTime = 50;
     long lastTime;
   public:
@@ -37,7 +35,7 @@ void StepperController::begin() {
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("StepperController begin");
   stepper = new CheapStepper();
-  stepper->setRpm(20); 
+  stepper->setRpm(STEPPER_RPM); 
 }
 
 void StepperController::init(){
@@ -58,7 +56,7 @@ void StepperController::operate(){
       moveTriggered = false;
     }
     if (!isStopped) {
-       stepper->moveCW(INCREMENT);
+       stepper->moveCW(STEPPER_INCREMENT);
        this->lastTime = millis();
     }
   }

@@ -20,8 +20,14 @@
 #define BUTTON_CONTROLS_DELTA_TIME 200
 #define BUTTON_PRESSED HIGH
 
+// Stepper
+#define STEPPER_INCREMENT 3
+#define STEPPER_RPM 20
 
-// Leds
+
+#define SETUP_DELAY 3000
+
+/////////////////////// Leds
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 #define BRIGHTNESS  96
