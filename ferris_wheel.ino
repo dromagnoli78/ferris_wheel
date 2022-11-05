@@ -5,6 +5,7 @@
 #include "ConsoleController.h"
 #include "ConsoleLightsController.h"
 #include "DisplayController.h"
+#include "Constants.h"
 
 
 /**
@@ -17,32 +18,32 @@
 #define WORKING_MODE 105
 #define SETTING_MODE 106
 
-#define RX_PIN 6
-#define TX_PIN 7
 #define STOP 1
 #define MODE WORKING_MODE
 
 long t = 0;
 bool debug = true;
 int8_t mode = START_MODE;
-SoftwareSerial mySoftwareSerial(RX_PIN, TX_PIN);
+SoftwareSerial mySoftwareSerial(MP3_RX_PIN, MP3_TX_PIN);
 DFRobotDFPlayerMini mp3Player;
 
 ButtonController buttonsController = ButtonController();
 DisplayController displayController = DisplayController();
 ConsoleLightsController consoleLightsController = ConsoleLightsController();
-//ConsoleLedController consoleLedController = ConsoleLedController();
 LedController ledController = LedController();
-StepperController stepperController = StepperController(200, 100);
+StepperController stepperController = StepperController(STEPS_PER_REVOLUTION, STEPPER_RPM);
 MusicController musicController = MusicController();
 
 ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
 
 
 void setup() {
-  if (CURRENT_MODE == DEBUG_MODE)
-    Serial.begin(9600);
-  mySoftwareSerial.begin(9600);
+  if (CURRENT_MODE == DEBUG_MODE) {
+    Serial.begin(115200);
+    Serial.println("Setting up");
+  }
+  
+  /*mySoftwareSerial.begin(9600);
 
 
   Serial.println();
@@ -59,9 +60,12 @@ void setup() {
   Serial.println(F("Ready DFPlayer Mini"));
   Serial.println("Setting Up!");
   musicController.begin(&mp3Player);
+
+  */
   stepperController.begin();
-  ledController.begin();
-  displayController.begin();
+  buttonsController.begin();
+  //ledController.begin();
+  //displayController.begin();
   //consoleLightsController.begin();
   consoleController.begin();
 }
@@ -85,19 +89,22 @@ void loop() {
 }
 
 void initialize() {
-  mode = WORKING_MODE;
+  
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("Initializing!");
-  buttonsController.init();
   stepperController.init();
-  musicController.init();
-  ledController.init();
+  buttonsController.init();
+  //musicController.init();
+  //ledController.init();
   //consoleLightsController.init();
-  displayController.init();
+  //displayController.init();
   consoleController.init();
-  mp3Player.enableLoopAll();
-  mp3Player.volume(3);
-  mp3Player.play(2);
+  //mp3Player.enableLoopAll();
+  //mp3Player.volume(3);
+  //mp3Player.play(2);
+  if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("Going to Working mode!");
+  mode = WORKING_MODE;
 }
 
 
@@ -111,11 +118,10 @@ void workingmode() {
 
   // Delegate to the console the operations 
   consoleController.operate();
-  musicController.operate();
-  displayController.operate();
-  ledController.operate();
+  //musicController.operate();
+  //displayController.operate();
+  //ledController.operate();
 
   // Last priority is the stepper
   stepperController.operate();
- // consoleLightsController.operate();
 }

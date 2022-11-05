@@ -6,49 +6,44 @@
 #include "DFRobotDFPlayerMini.h"
 #include "Constants.h"
 
-#define RX_PIN 6
-#define TX_PIN 7
-#define VOLUME_PIN A0
 #define DELTA_TIME 50
 
-SoftwareSerial mSoftwareSerial(RX_PIN, TX_PIN);
-
 class MusicController {
-  private:
-    bool needUpdate;
-    bool isPlaying = false;
-    bool isMuted = false;
-    bool volumeTriggered = false;
-    int lastTrack;
-    int currentTrack;
-    int8_t volume;
-    int8_t previousVolume;
-    long lastVolumeCheckTime;
-    long lastPlayCheckTime;
-    DFRobotDFPlayerMini* mp3Player;
+private:
+  bool needUpdate;
+  bool playing = false;
+  bool muted = false;
+  bool volumeTriggered = false;
+  int lastTrack;
+  int currentTrack;
+  int8_t volume;
+  int8_t previousVolume;
+  long lastVolumeCheckTime;
+  long lastPlayCheckTime;
+  DFRobotDFPlayerMini* mp3Player;
 
-  public:
-    MusicController(){
+public:
+  MusicController(){
 
-    };
-    void init();
-    void begin(DFRobotDFPlayerMini* pMp3Player);
-    void operate();
-    void adjustVolume();
-    void nextSong();
-    bool triggerMute();
+  };
+  void init();
+  void begin(DFRobotDFPlayerMini* pMp3Player);
+  void operate();
+  void adjustVolume();
+  void nextSong(){};
+void sleepMode(){};
+  bool triggerMute();
+  bool isPlaying(){return playing;};
+  bool isMuted(){return muted;};
 };
 
 void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
-  
-  if (CURRENT_MODE == DEBUG_MODE) {
-    Serial.println("MusicController begin");
-  }
+
+  if (CURRENT_MODE == DEBUG_MODE) Serial.println("MusicController begin");
   mp3Player = pMp3Player;
- 
 }
 
-void MusicController::init(){
+void MusicController::init() {
   currentTrack = 0;
   adjustVolume();
   previousVolume = volume;
@@ -58,53 +53,57 @@ void MusicController::init(){
   lastPlayCheckTime = time;
 }
 
-void MusicController::adjustVolume(){
+void MusicController::adjustVolume() {
   int v = analogRead(VOLUME_PIN);
-  volume = map(v, 0,1024,0,30);
+  volume = map(v, 0, 1024, 0, 30);
   //Set volume value. From 0 to 30
-  mp3Player->volume(volume);  
+  mp3Player->volume(volume);
 }
 
-void MusicController::operate(){
+void MusicController::operate() {
+  if (CONTROL_MUSIC == DISABLED) return;
   long time = millis();
-  
+
   // leave if muted
   if (volumeTriggered) {
-    if(!isMuted) {
+    if (!muted) {
+      if (CURRENT_MODE == DEBUG_MODE) Serial.println("Muting MusicController");
       mp3Player->volume(0);
-      isMuted=true;
+      muted = true;
     } else {
+      if (CURRENT_MODE == DEBUG_MODE) Serial.println("Un-Muting MusicController");
       adjustVolume();
-      isMuted = false;
+      muted = false;
     }
-    volumeTriggered=false;
+    volumeTriggered = false;
   }
-  if (isMuted) {
+  if (muted) {
     return;
   }
 
   // volume control
   if ((time - lastVolumeCheckTime) > DELTA_TIME) {
     adjustVolume();
+    if (CURRENT_MODE == DEBUG_MODE) Serial.println("Adjusting Volume in MusicController");
     lastVolumeCheckTime = time;
   }
 
   // music control
-  if ((time - lastPlayCheckTime) > (DELTA_TIME*10)) {
-    if (!isPlaying /*|| buttonController->isNextSongRequested()*/) {
-    //buttonController->setNextSongRequested(false);
-    mp3Player->play(currentTrack);
-    isPlaying = true;
-    currentTrack++;
-    currentTrack = currentTrack % lastTrack;
-    lastPlayCheckTime = time;
+  if ((time - lastPlayCheckTime) > (DELTA_TIME * 10)) {
+    if (!playing /*|| buttonController->isNextSongRequested()*/) {
+      //buttonController->setNextSongRequested(false);
+      mp3Player->play(currentTrack);
+      playing = true;
+      currentTrack++;
+      currentTrack = currentTrack % lastTrack;
+      lastPlayCheckTime = time;
     }
   }
 }
 
 bool MusicController::triggerMute() {
   volumeTriggered = true;
-  return isMuted;
+  return muted;
 }
 
 

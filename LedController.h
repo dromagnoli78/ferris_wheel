@@ -9,38 +9,37 @@
 // How many seconds to show each temperature before switching
 #define DISPLAYTIME 20
 // How many seconds to show black between switches
-#define BLACKTIME   3
+#define BLACKTIME 3
 
-#define FRAMES_PER_SECOND  45
+#define FRAMES_PER_SECOND 45
 #define LIGHT_SENSOR_PIN 99999
 
-#define COLOR_PATTERNS  6
+#define COLOR_PATTERNS 6
 
 
 class LedController {
-  private:
-    CRGBPalette16 currentPalette;
-    TBlendType    currentBlending;
-    long lastTimeOnButtonControl;
-    long deltaTimeOnButtonControl = 50;
-    long deltaTimeOnLedChange = 100;
-    long deltaTimeWhenSequence = 200;
-    CRGB leds[WHEEL_NUM_LEDS];
-    CRGBArray<WHEEL_NUM_LEDS> ledsArr;
-    CRGB colorPattern[6];
-    int currentColorPattern = 0;
-    long lastTimeOnLedUpdate;
-    long lastTimeOnSequenceUpdate;
-    int pattern;
-    int ledInSequence=0;
-    bool sequenceUp = true;
-  public:
-    LedController(/*ButtonController pButtonController, DisplayController* pDisplayController*/)
-    {
-      //buttonController = pButtonController;
-      //displayController = pDisplayController;
-      };
-  void init();  
+private:
+  CRGBPalette16 currentPalette;
+  TBlendType currentBlending;
+  long lastTimeOnButtonControl;
+  long deltaTimeOnButtonControl = 50;
+  long deltaTimeOnLedChange = 100;
+  long deltaTimeWhenSequence = 200;
+  CRGB leds[WHEEL_NUM_LEDS];
+  //CRGBArray<WHEEL_NUM_LEDS> ledsArr;
+  CRGB colorPattern[6];
+  int currentColorPattern = 0;
+  long lastTimeOnLedUpdate;
+  long lastTimeOnSequenceUpdate;
+  int pattern;
+  int ledInSequence = 0;
+  bool sequenceUp = true;
+public:
+  LedController(/*ButtonController pButtonController, DisplayController* pDisplayController*/){
+    //buttonController = pButtonController;
+    //displayController = pDisplayController;
+  };
+  void init();
   void begin();
   void operate();
   void nextSequence(){};
@@ -48,14 +47,25 @@ class LedController {
   void growingLedSequence();
 };
 
+
+//ColorWhipe
+//bouncingBall
+//FullColor
+//singleSequence
+//growingSequence
+//rainbow
+//theather(slow)
+//RGBLoop
+
+
 void LedController::begin() {
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("LedController begin");
-  delay(3000); // 3 second delay for recovery
-  
+  delay(3000);  // 3 second delay for recovery
+
   // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,WHEEL_LIGHTS_DATA_PIN,COLOR_ORDER>(leds, WHEEL_NUM_LEDS).setCorrection(TypicalLEDStrip);
-  
+  FastLED.addLeds<LED_TYPE, WHEEL_LIGHTS_DATA_PIN, COLOR_ORDER>(leds, WHEEL_NUM_LEDS).setCorrection(TypicalLEDStrip);
+
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
 }
@@ -64,30 +74,30 @@ void LedController::init() {
   long time = millis();
   lastTimeOnButtonControl = time;
   lastTimeOnSequenceUpdate = time;
-  colorPattern[0]=CRGB::Red;
-  colorPattern[1]=CRGB::Purple;
-  colorPattern[2]=CRGB::Blue;
-  colorPattern[3]=CRGB::Cyan;
-  colorPattern[4]=CRGB::Green;
-  colorPattern[5]=CRGB::Yellow;
+  colorPattern[0] = CRGB::Red;
+  colorPattern[1] = CRGB::Purple;
+  colorPattern[2] = CRGB::Blue;
+  colorPattern[3] = CRGB::Cyan;
+  colorPattern[4] = CRGB::Green;
+  colorPattern[5] = CRGB::Yellow;
   pattern = 1;
 }
 
-void LedController::operate()
-{
+void LedController::operate() {
+  if (CONTROL_LIGHTS == DISABLED) return;
   long time = millis();
   if (time - lastTimeOnLedUpdate > deltaTimeOnLedChange) {
-   // bool isColorChanged = buttonController -> isColorChanged();
-   bool isColorChanged = true;
+    // bool isColorChanged = buttonController -> isColorChanged();
+    bool isColorChanged = true;
     if (isColorChanged) {
       //displayController -> displayMessage("Verde");
       currentColorPattern++;
-      lastTimeOnLedUpdate=time;
+      lastTimeOnLedUpdate = time;
       currentColorPattern = currentColorPattern % COLOR_PATTERNS;
-    //  buttonController -> setColorChanged(false);
+      //  buttonController -> setColorChanged(false);
     }
 
-    switch(pattern){
+    switch (pattern) {
       case 0:
         singleLedSequence();
         break;
@@ -96,62 +106,59 @@ void LedController::operate()
         break;
     }
     FastLED.show();
-
   }
 }
 
 void LedController::singleLedSequence() {
   long time = millis();
   if (time - lastTimeOnSequenceUpdate > deltaTimeWhenSequence) {
-     for(int i=0; i<WHEEL_NUM_LEDS; i++) {
+    for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
       leds[i] = CRGB::Black;
-     }
-     leds[ledInSequence] = colorPattern[currentColorPattern];
-     ledInSequence++;
-     ledInSequence %= WHEEL_NUM_LEDS;
-     lastTimeOnSequenceUpdate = time;
-  
+    }
+    leds[ledInSequence] = colorPattern[currentColorPattern];
+    ledInSequence++;
+    ledInSequence %= WHEEL_NUM_LEDS;
+    lastTimeOnSequenceUpdate = time;
   }
 }
-  void LedController::growingLedSequence() {
+void LedController::growingLedSequence() {
   long time = millis();
   if (time - lastTimeOnSequenceUpdate > deltaTimeWhenSequence) {
-    if (sequenceUp){
-      for(int i=0; i<=ledInSequence; i++) {
+    if (sequenceUp) {
+      for (int i = 0; i <= ledInSequence; i++) {
         leds[i] = colorPattern[currentColorPattern];
       }
-      for(int i=ledInSequence+1; i<WHEEL_NUM_LEDS; i++) {
+      for (int i = ledInSequence + 1; i < WHEEL_NUM_LEDS; i++) {
         leds[i] = CRGB::Black;
       }
-       ledInSequence++;
-     if (ledInSequence == WHEEL_NUM_LEDS) {
-       sequenceUp = false;
-       ledInSequence--;
-     }
+      ledInSequence++;
+      if (ledInSequence == WHEEL_NUM_LEDS) {
+        sequenceUp = false;
+        ledInSequence--;
+      }
 
     } else {
-      for(int i=WHEEL_NUM_LEDS-1; i>=ledInSequence; i--) {
+      for (int i = WHEEL_NUM_LEDS - 1; i >= ledInSequence; i--) {
         leds[i] = colorPattern[currentColorPattern];
       }
-      for(int i=ledInSequence; i>=0; i--) {
+      for (int i = ledInSequence; i >= 0; i--) {
         leds[i] = CRGB::Black;
       }
-       ledInSequence--;
+      ledInSequence--;
 
 
       if (ledInSequence == -1) {
-       sequenceUp = true;
-       ledInSequence = 0;
-     }
+        sequenceUp = true;
+        ledInSequence = 0;
+      }
     }
-     
-     lastTimeOnSequenceUpdate = time;
-  
+
+    lastTimeOnSequenceUpdate = time;
   }
 }
 
 
-  /*
+/*
     // Waves for LED position
   uint8_t posBeat  = beatsin8(30, 0, NUM_LEDS - 1, 0, 0);
   uint8_t posBeat2 = beatsin8(60, 0, NUM_LEDS - 1, 0, 0);

@@ -2,65 +2,74 @@
 #define StepperController_h
 
 #include "Constants.h"
-#include <CheapStepper.h>
+#include <Stepper.h>
+
+#define STEPPER_INCREMENT 1
 
 class StepperController {
-  private:
-    const int8_t stepsPerRevolution;
-    const int stSpeed;
-    bool moveTriggered = false;
-    bool isStopped = false;
-    CheapStepper* stepper;
-    bool moveClockwise = true;
-    long deltaTime = 50;
-    long lastTime;
-  public:
-    void init();
-    void begin();
-    void operate();
-    StepperController(const int iStepsPerRevolution, const int iStSpeed):
-    stepsPerRevolution(iStepsPerRevolution), stSpeed(iStSpeed){
-      lastTime = millis();
-    };
-    bool triggerMovement();
-
+private:
+  int stepsPerRevolution;
+  int stSpeed;
+  bool moveTriggered = false;
+  bool isStopped = true;
+  Stepper stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
+  bool moveClockwise = true;
+  long deltaTime = 50;
+  long lastTime;
+public:
+  void init();
+  void begin();
+  void operate();
+  StepperController(int iStepsPerRevolution, int iStSpeed)
+    : stepsPerRevolution(iStepsPerRevolution), stSpeed(iStSpeed) {
+    lastTime = millis();
+    //stepper = Stepper(stepsPerRevolution, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
+  };
+  bool triggerMovement();
 };
 
 bool StepperController::triggerMovement() {
   moveTriggered = true;
+   if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("StepperController triggered");
   return !isStopped;
 }
 
 void StepperController::begin() {
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("StepperController begin");
-  stepper = new CheapStepper();
-  stepper->setRpm(STEPPER_RPM); 
+  //stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
+  //stepper->setRpm(STEPPER_RPM);
+  stepper.setSpeed(stSpeed);
 }
 
-void StepperController::init(){
+void StepperController::init() {
+    if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("StepperController init");
   //stepper->setSpeed(stSpeed);
-  //stepper->step(100);  
+  //stepper->step(100);
 }
 
-void StepperController::operate(){
+void StepperController::operate() {
+  if (CONTROL_STEPPER == DISABLED) return;
   long time = millis();
   if ((time - this->lastTime) > deltaTime) {
-    if(moveTriggered) {
+    this->lastTime = millis();
+    if (moveTriggered) {
+      moveTriggered = false;
       if (isStopped) {
         isStopped = false;
+        stepper.setSpeed(stSpeed);
       } else {
         isStopped = true;
+        stepper.setSpeed(0);
         return;
       }
-      moveTriggered = false;
     }
     if (!isStopped) {
-       stepper->moveCW(STEPPER_INCREMENT);
-       this->lastTime = millis();
+      stepper.step(STEPPER_INCREMENT);
     }
   }
-  
 }
-  
+
 #endif

@@ -13,84 +13,124 @@
 
 
 class ConsoleController {
-  private:
-    ButtonController* buttonsController;
-    LedController* ledController;
-    MusicController* musicController;
-    StepperController *stepperController;
-    DisplayController *displayController;
-    ConsoleLightsController* consoleLightsController;
-    bool isSleeping;
+private:
+  ButtonController* buttonsController;
+  LedController* ledController;
+  MusicController* musicController;
+  StepperController* stepperController;
+  DisplayController* displayController;
+  ConsoleLightsController* consoleLightsController;
+  bool isSleeping;
+  bool isMuted;
+  long debugTime = 0;
 
-  public:
-    ConsoleController(
-      LedController* pLedController,
-      MusicController* pMusicController, 
-      StepperController* pStepperController, 
-      DisplayController* pDisplayController, 
-      ButtonController* pButtonsController,
-      ConsoleLightsController* pConsoleLightsController){
-      
-      ledController = pLedController;
-      buttonsController = pButtonsController;
-      musicController = pMusicController;
-      stepperController = pStepperController;
-      displayController = pDisplayController;
-      consoleLightsController = pConsoleLightsController;
-      };
-  void init();  
+public:
+  ConsoleController(
+    LedController* pLedController,
+    MusicController* pMusicController,
+    StepperController* pStepperController,
+    DisplayController* pDisplayController,
+    ButtonController* pButtonsController,
+    ConsoleLightsController* pConsoleLightsController) {
+
+    ledController = pLedController;
+    buttonsController = pButtonsController;
+    musicController = pMusicController;
+    stepperController = pStepperController;
+    displayController = pDisplayController;
+    consoleLightsController = pConsoleLightsController;
+  };
+  void init();
   void begin();
   void operate();
 };
 
 void ConsoleController::begin() {
+  if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("ConsoleController begin");
 }
 
 void ConsoleController::init() {
+    if (CURRENT_MODE == DEBUG_MODE)
+    Serial.println("ConsoleController init");
 }
 
 void ConsoleController::operate() {
-  bool isMuted = false;
+  isMuted = false;
+  long time = millis();
   
-  ButtonInfo* muted = buttonsController->mute();
-  if (muted->isClicked()) {
+/*
+  // First let's check the mute
+  ButtonInfo muted = buttonsController->mute();
+  if (muted.isClicked()) {
+    if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Mute is clicked");
     isMuted = musicController->triggerMute();
-    muted->reset();
-    consoleLightsController -> mute(isMuted);
+    muted.reset();
+    consoleLightsController->mute(isMuted);
+    if (!isMuted && musicController->isPlaying()) {
+      consoleLightsController->music();
+    }
   }
 
-  ButtonInfo* sleeping = buttonsController->sleeping();
-  if (sleeping->isClicked()) {
+  // Then let's check the sleeping
+  ButtonInfo sleeping = buttonsController->sleeping();
+  if (sleeping.isClicked()) {
+    if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Sleeping is clicked");
     isSleeping = !isSleeping;
+    sleeping.reset();
     consoleLightsController->sleeping(isSleeping);
-    sleeping->reset();
+    
   }
-/*
-  ButtoInfo* music = buttonsController->music();
-  if (music->isClicked()) {
+  */
+
+  ButtonInfo* music = buttonsController->music();
+  if (!isMuted && music->isClicked()) {
+    if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Music is clicked");
     musicController->nextSong();
     music->reset();
     displayController->nextSong();
+    consoleLightsController->music();
   }
-*/
+ 
+
   ButtonInfo* stepper = buttonsController->stepper();
   if (stepper->isClicked()) {
-    bool isStopped = stepperController -> triggerMovement();
+
+    bool isStopped = stepperController->triggerMovement();
     stepper->reset();
-    consoleLightsController -> stepper(isStopped);
+    if (CURRENT_MODE == DEBUG_MODE) {
+      Serial.print("ConsoleController: Stepper is clicked!");
+      Serial.print("Is stopped:");
+      Serial.println(isStopped);
+    }
+
+    consoleLightsController->stepper(isStopped);
   }
-
-
-  ButtonInfo* lights = buttonsController->lights();
-  if (lights->isClicked()) {
+/*
+  ButtonInfo lights = buttonsController->lights();
+  if (lights.isClicked()) {
+    if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Lights is clicked");
     ledController->nextSequence();
-    lights->reset();
-    consoleLightsController -> lights(isMuted);
+    lights.reset();
+    consoleLightsController->lights(true);
   }
 
 
- 
-  
+  if (isSleeping) {
+    if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Forcing sleepmode");
+    displayController->sleepMode();
+    musicController->sleepMode();
+    consoleLightsController->sleepMode();
+  }
+  */
+ if (CURRENT_MODE == DEBUG_MODE) {
+     if (time - debugTime > 10000) {
+      Serial.println("ConsoleController operate");
+      stepper->debug();
+      debugTime = time;
+      }
+   }
+
 }
 
 #endif
