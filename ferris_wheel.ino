@@ -6,6 +6,8 @@
 #include "ConsoleLightsController.h"
 #include "DisplayController.h"
 #include "Constants.h"
+#include <Arduino.h>
+//#include <SoftwareSerial.h>
 
 
 /**
@@ -24,14 +26,15 @@
 long t = 0;
 bool debug = true;
 int8_t mode = START_MODE;
-SoftwareSerial mySoftwareSerial(MP3_RX_PIN, MP3_TX_PIN);
+//SoftwareSerial mySerial(MP3_RX_PIN, MP3_TX_PIN);
+HardwareSerial mySerial(1);
 DFRobotDFPlayerMini mp3Player;
 
 ButtonController buttonsController = ButtonController();
 DisplayController displayController = DisplayController();
 ConsoleLightsController consoleLightsController = ConsoleLightsController();
 LedController ledController = LedController();
-StepperController stepperController = StepperController(STEPS_PER_REVOLUTION, STEPPER_RPM);
+StepperController stepperController = StepperController(STEPS_PER_REVOLUTION, STEPPER_RPM, STEPPER_DELTA_TIME);
 MusicController musicController = MusicController();
 
 ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
@@ -43,14 +46,15 @@ void setup() {
     Serial.println("Setting up");
   }
   
-  /*mySoftwareSerial.begin(9600);
+  //mySerial.begin(9600);
+  mySerial.begin(9600, SERIAL_8N1,MP3_RX_PIN, MP3_TX_PIN);
 
 
   Serial.println();
   Serial.println(F("DFRobot DFPlayer Mini Demo"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
 
-  if (!mp3Player.begin(mySoftwareSerial)) {  //Use softwareSerial to communicate with mp3.
+  if (!mp3Player.begin(mySerial)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
@@ -61,7 +65,7 @@ void setup() {
   Serial.println("Setting Up!");
   musicController.begin(&mp3Player);
 
-  */
+ 
   stepperController.begin();
   buttonsController.begin();
   //ledController.begin();
@@ -94,7 +98,7 @@ void initialize() {
     Serial.println("Initializing!");
   stepperController.init();
   buttonsController.init();
-  //musicController.init();
+  musicController.init();
   //ledController.init();
   //consoleLightsController.init();
   //displayController.init();
@@ -118,7 +122,7 @@ void workingmode() {
 
   // Delegate to the console the operations 
   consoleController.operate();
-  //musicController.operate();
+  musicController.operate();
   //displayController.operate();
   //ledController.operate();
 

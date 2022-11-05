@@ -126,7 +126,8 @@ void ConsoleController::operate() {
  if (CURRENT_MODE == DEBUG_MODE) {
      if (time - debugTime > 10000) {
       Serial.println("ConsoleController operate");
-      stepper->debug();
+      //stepper->debug();
+      //music->debug();
       debugTime = time;
       }
    }

@@ -14,14 +14,14 @@ private:
   bool isStopped = true;
   Stepper stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   bool moveClockwise = true;
-  long deltaTime = 50;
+  long deltaTime;
   long lastTime;
 public:
   void init();
   void begin();
   void operate();
-  StepperController(int iStepsPerRevolution, int iStSpeed)
-    : stepsPerRevolution(iStepsPerRevolution), stSpeed(iStSpeed) {
+  StepperController(int iStepsPerRevolution, int iStSpeed, int iDeltaTime)
+    : stepsPerRevolution(iStepsPerRevolution), stSpeed(iStSpeed), deltaTime(iDeltaTime) {
     lastTime = millis();
     //stepper = Stepper(stepsPerRevolution, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   };
@@ -62,12 +62,17 @@ void StepperController::operate() {
         stepper.setSpeed(stSpeed);
       } else {
         isStopped = true;
-        stepper.setSpeed(0);
+        digitalWrite(STEPPER_IN_1, LOW);
+        digitalWrite(STEPPER_IN_2, LOW);
+        digitalWrite(STEPPER_IN_3, LOW);
+        digitalWrite(STEPPER_IN_4, LOW);
+
         return;
       }
     }
     if (!isStopped) {
       stepper.step(STEPPER_INCREMENT);
+      //stepper.move(1);
     }
   }
 }

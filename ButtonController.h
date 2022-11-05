@@ -62,7 +62,7 @@ public:
   void operate();
 
   ButtonInfo* music() {
-    return &buttonMusic;
+    return &buttons[0];
   };
 
   ButtonInfo* lights() {
