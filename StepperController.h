@@ -14,8 +14,8 @@ private:
   bool isStopped = true;
   Stepper stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   bool moveClockwise = true;
-  long deltaTime;
-  long lastTime;
+  int deltaTime;
+  unsigned long lastTime;
 public:
   void init();
   void begin();
@@ -52,7 +52,7 @@ void StepperController::init() {
 
 void StepperController::operate() {
   if (CONTROL_STEPPER == DISABLED) return;
-  long time = millis();
+  unsigned long time = millis();
   if ((time - this->lastTime) > deltaTime) {
     this->lastTime = millis();
     if (moveTriggered) {

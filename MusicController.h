@@ -24,12 +24,12 @@ private:
   int8_t volume;
   int8_t previousVolume;
   int8_t maxVolume = 30;
-  long lastVolumeCheckTime;
-  long lastPlayCheckTime;
-  long lastDebugTime = 0;
+  unsigned long lastVolumeCheckTime;
+  unsigned long lastPlayCheckTime;
+  unsigned long lastDebugTime = 0;
   bool sleepMode = false;
-  long sleepStartTime = 0;
-  long sleepLastCheck = 0;
+  unsigned long sleepStartTime = 0;
+  unsigned long sleepLastCheck = 0;
   DFRobotDFPlayerMini* mp3Player;
   DisplayController* displayController;
 
@@ -73,7 +73,7 @@ void MusicController::init() {
   adjustVolume();
   
   previousVolume = volume;
-  long time = millis();
+  unsigned long time = millis();
   lastTrack = mp3Player->readFileCounts();
 
   mp3Player->EQ(DFPLAYER_EQ_CLASSIC);
@@ -88,8 +88,8 @@ void MusicController::init() {
 
 void MusicController::adjustVolume() {
   int v = analogRead(VOLUME_PIN);
-  long time = millis();
-    if (sleepMode && (time - sleepLastCheck > 30000)){
+  unsigned long time = millis();
+  if (sleepMode && (time - sleepLastCheck > 60000)){
     if (CURRENT_MODE == DEBUG_MODE){
      Serial.println("MusicController Reducing maxVolume for sleep");
     }
@@ -105,7 +105,7 @@ void MusicController::adjustVolume() {
   //Set volume value. From 0 to 30
 
   /*if (CURRENT_MODE == DEBUG_MODE) {
-    long time = millis();
+    unsigned long time = millis();
     if (time - lastDebugTime > 5000) {
       Serial.print("MusicController adjusting volume:");
       Serial.println(volume);
@@ -118,7 +118,7 @@ void MusicController::adjustVolume() {
 
 void MusicController::operate() {
   if (CONTROL_MUSIC == DISABLED) return;
-  long time = millis();
+  unsigned long time = millis();
 
   // leave if muted
   if (volumeTriggered) {
@@ -196,6 +196,7 @@ void MusicController::sleeping(bool sleeping){
     sleepStartTime = millis();
     sleepLastCheck = sleepStartTime;
     playing = false;
+    canPlay = true;
     mp3Player->stop();
   }
 

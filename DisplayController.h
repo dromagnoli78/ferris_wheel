@@ -71,18 +71,19 @@ void DisplayController::begin() {
 void DisplayController::init() {
   display.clearDisplay();
   display.setRotation(2);
-  display.setTextSize(2);  // Draw 2X-scale text
+  //display.setTextSize(2);  // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE);
   display.setTextWrap(false);
   display.setCursor(10, 0);
-  display.println(F("Ciao\n    Nadia"));
+  //display.println(F("Ciao\n    Nadia"));
+  display.drawBitmap(0, 0, ciaoNadia, 128, 32, SSD1306_WHITE);
   display.display();
 }
 
 void DisplayController::operate() {
   if (CONTROL_DISPLAY == DISABLED) return;
 
-  long time = millis();
+  unsigned long time = millis();
   if (CURRENT_MODE == DEBUG_MODE) {
      if (time - debugTime > 20000) {
       Serial.println("DisplayController operate");
@@ -113,7 +114,7 @@ void DisplayController::operate() {
 void DisplayController::displaySong(int index) {
   if (!isScrolling)
     displayMessage(songGetter.getTrack(index), 1);
-  long time = millis();
+  unsigned long time = millis();
   if (time - songTitleTimeBeingShown > 60000) {
     mode = TIME_MODE;
     isScrolling = false;
@@ -142,25 +143,25 @@ void DisplayController::nextSong(int index) {
 
 
 void DisplayController::displayPreSleep() {
-  long time=millis();
+  unsigned long time=millis();
   long deltaTime = time - sleepModeStartTime;
-  if (preSleep && (deltaTime > 500 && deltaTime < 1000)) {
+  if (preSleep && (deltaTime > 100 && deltaTime < 1000)) {
+    display.stopscroll();
     display.clearDisplay(); 
-    display.println(F("Buonanotte"));
+    display.drawBitmap(0, 0, buonaNotte, 128, 32, SSD1306_WHITE);
     display.display();
     preSleep = false;
   }
 
   if (time - sleepModeStartTime > 5000) {
     mode = SLEEP_MODE;
-    display.stopscroll();
     isScrolling = false;
   }
    
 }
 
 void DisplayController::displaySleep(){
-  long time=millis();
+  unsigned long time=millis();
   if (time - sleepTimeCheck > deltaSleepTime) {
     display.clearDisplay(); // Clear the display buffer
     

@@ -68,7 +68,7 @@ void setup() {
   buttonsController.begin();
   ledController.begin();
   displayController.begin();
-  //consoleLightsController.begin();
+  consoleLightsController.begin();
   consoleController.begin();
 }
 
@@ -98,7 +98,7 @@ void initialize() {
   buttonsController.init();
   musicController.init();
   ledController.init();
-  //consoleLightsController.init();
+  consoleLightsController.init();
   displayController.init();
   consoleController.init();
   mp3Player.enableLoopAll();
@@ -124,4 +124,5 @@ void workingmode() {
 
   // Last priority is the stepper
   stepperController.operate();
+  consoleLightsController.operate();
 }

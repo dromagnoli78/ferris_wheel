@@ -7,7 +7,7 @@ Each Button can be associated to a ButtonInfo instance class
 class ButtonInfo {
 private:
   int buttonPin;                 // The PIN associated to the button
-  long lastTimeOnButtonControl;  // The millis() of the last time the button state has been taken into account
+  unsigned long lastTimeOnButtonControl;  // The millis() of the last time the button state has been taken into account
   bool pressed;                  // True if the button has been long pressed
   bool clicked = false;                  // True if the button has been clicked
   char name;

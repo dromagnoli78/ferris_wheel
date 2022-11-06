@@ -12,50 +12,24 @@ Class holding all the buttons and controlling them
 */
 class ButtonController {
 private:
-
-  // Action buttons
-  ButtonInfo buttonMusic;
-  ButtonInfo buttonLights;
-  ButtonInfo buttonMute;
-
-  ButtonInfo buttonStepper;
-  ButtonInfo buttonSleeping;
-
-  // Control buttons
-  ButtonInfo buttonSettings;
-  ButtonInfo buttonArrowLeft;
-  ButtonInfo buttonArrowRight;
-  ButtonInfo buttonArrowUp;
-  ButtonInfo buttonArrowDown;
-
   ButtonInfo buttons[NUM_BUTTONS];
 
 
 public:
   ButtonController() {
-    buttonMusic = ButtonInfo(BUTTON_MUSIC,'M');
-    buttonMute = ButtonInfo(BUTTON_MUTE,'m');
-    buttonStepper = ButtonInfo(BUTTON_STEPPER,'P');
-    buttonLights = ButtonInfo(BUTTON_LED_SEQUENCE,'Q');
+    // Action buttons
+    buttons[0] = ButtonInfo(BUTTON_MUSIC, 'M');
+    buttons[1] = ButtonInfo(BUTTON_MUTE, 'm');
+    buttons[2] = ButtonInfo(BUTTON_STEPPER, 'P');
+    buttons[3] = ButtonInfo(BUTTON_LED_SEQUENCE, 'Q');
+    buttons[4] = ButtonInfo(BUTTON_SLEEPING, 'S');
 
-    buttonSleeping = ButtonInfo(BUTTON_SLEEPING,'S');
-    buttonSettings = ButtonInfo(BUTTON_SETTINGS,'T');
-
-    buttonArrowLeft = ButtonInfo(BUTTON_ARROW_LEFT,'l');
-    buttonArrowRight = ButtonInfo(BUTTON_ARROW_RIGHT,'r');
-    buttonArrowUp = ButtonInfo(BUTTON_ARROW_UP,'u');
-    buttonArrowDown = ButtonInfo(BUTTON_ARROW_DOWN,'d');
-
-    buttons[0] = buttonMusic;
-    buttons[1] = buttonMute;
-    buttons[2] = buttonStepper;
-    buttons[3] = buttonLights;
-    buttons[4] = buttonSleeping;
-    buttons[5] = buttonSettings;
-    buttons[6] = buttonArrowLeft;
-    buttons[7] = buttonArrowRight;
-    buttons[8] = buttonArrowUp;
-    buttons[9] = buttonArrowDown;
+    // Control buttons
+    buttons[5] = ButtonInfo(BUTTON_SETTINGS, 'T');
+    buttons[6] = ButtonInfo(BUTTON_ARROW_LEFT, 'l');
+    buttons[7] = ButtonInfo(BUTTON_ARROW_RIGHT, 'r');
+    buttons[8] = ButtonInfo(BUTTON_ARROW_UP, 'u');
+    buttons[9] = ButtonInfo(BUTTON_ARROW_DOWN, 'd');
   };
   void init();
   void begin();
@@ -68,32 +42,36 @@ public:
   ButtonInfo* lights() {
     return &buttons[3];
   };
+
   ButtonInfo* mute() {
-    return&buttons[1];
+    return &buttons[1];
   };
   ButtonInfo* stepper() {
     return &buttons[2];
   };
+
   ButtonInfo* sleeping() {
     return &buttons[4];
   };
-  ButtonInfo& settings() {
-    return buttonSettings;
-  };
-  ButtonInfo& up() {
-    return buttonArrowUp;
+
+  ButtonInfo* settings() {
+    return &buttons[5];
   };
 
-  ButtonInfo& down() {
-    return buttonArrowDown;
+  ButtonInfo* up() {
+    return &buttons[8];
   };
 
-  ButtonInfo& left() {
-    return buttonArrowLeft;
+  ButtonInfo* down() {
+    return &buttons[9];
   };
 
-  ButtonInfo& right() {
-    return buttonArrowRight;
+  ButtonInfo* left() {
+    return &buttons[6];
+  };
+
+  ButtonInfo* right() {
+    return &buttons[7];
   };
 };
 

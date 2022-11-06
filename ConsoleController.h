@@ -57,7 +57,7 @@ void ConsoleController::init() {
 
 void ConsoleController::operate() {
   isMuted = false;
-  long time = millis();
+  unsigned long time = millis();
   
 /*
   // First let's check the mute
@@ -106,7 +106,7 @@ void ConsoleController::operate() {
       Serial.println(isStopped);
     }
 
-    consoleLightsController->stepper(isStopped);
+    consoleLightsController->stepper(!isStopped);
   }
 
 
@@ -123,6 +123,7 @@ void ConsoleController::operate() {
     displayController->sleeping(isSleeping);
     musicController->sleeping(isSleeping);
     consoleLightsController->sleeping(isSleeping);
+    ledController->sleeping(isSleeping);
   }
 
   if (CURRENT_MODE == DEBUG_MODE) {
