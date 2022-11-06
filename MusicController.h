@@ -167,7 +167,7 @@ void MusicController::operate() {
       } else {
         currentTrack = SLEEP_SONG;
       }
-      currentTrack = currentTrack % lastTrack;
+      
       if (CURRENT_MODE == DEBUG_MODE) {
         Serial.print("MusicController: song number:");
         Serial.println(currentTrack);
@@ -176,6 +176,7 @@ void MusicController::operate() {
       if (CURRENT_MODE == DEBUG_MODE) {
         Serial.println("MusicController is playing");
       }
+      currentTrack = currentTrack % lastTrack;
       playing = true;
       nextSongRequested = false;
     }

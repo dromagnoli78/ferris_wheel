@@ -78,6 +78,7 @@ public:
       turnOff(LED_STEPPER);
     }
   };
+  
   void lights(bool onOff) {
     if (onOff) {
       setLed(LED_LIGHTS, LED_LIGHTS_COLOR, true);

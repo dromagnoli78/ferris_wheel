@@ -125,7 +125,7 @@ void ConsoleController::operate() {
     consoleLightsController->sleeping(isSleeping);
   }
 
- if (CURRENT_MODE == DEBUG_MODE) {
+  if (CURRENT_MODE == DEBUG_MODE) {
      if (time - debugTime > 20000) {
       Serial.println("ConsoleController operate");
       //stepper->debug();

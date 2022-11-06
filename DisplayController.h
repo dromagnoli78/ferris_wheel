@@ -41,13 +41,14 @@ private:
   long sleepModeStartTime = 0; // When sleep Mode started
   long sleepModePeriod; // Timer for sleepMode interval to show the clock
   bool preSleep = false;
+  long debugTime = 0;
   SongGetter songGetter;
    
 public:
   void init();
   void begin();
   void operate();
-  void displayMessage(const char*);
+  void displayMessage(const char*, int fontsize);
   void displayTime(){};
   void displaySleep();
   void displayPreSleep();
@@ -82,6 +83,15 @@ void DisplayController::operate() {
   if (CONTROL_DISPLAY == DISABLED) return;
 
   long time = millis();
+  if (CURRENT_MODE == DEBUG_MODE) {
+     if (time - debugTime > 20000) {
+      Serial.println("DisplayController operate");
+      //stepper->debug();
+      //music->debug();
+      debugTime = time;
+      }
+   }
+
   if (time - lastTime > deltaTime) {
     switch (mode){
       case TIME_MODE:
@@ -102,7 +112,7 @@ void DisplayController::operate() {
 
 void DisplayController::displaySong(int index) {
   if (!isScrolling)
-    displayMessage(songGetter.getTrack(index));
+    displayMessage(songGetter.getTrack(index), 1);
   long time = millis();
   if (time - songTitleTimeBeingShown > 60000) {
     mode = TIME_MODE;
@@ -112,10 +122,10 @@ void DisplayController::displaySong(int index) {
 
   
 
-void DisplayController::displayMessage(const char* message) {
+void DisplayController::displayMessage(const char* message, int fontsize) {
   display.clearDisplay();
   display.setCursor(10, 0);
-  display.setTextSize(2);
+  display.setTextSize(fontsize);
   display.println(message);
   display.display();
   display.startscrollright(0x00, 0x0F);
