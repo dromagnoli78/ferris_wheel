@@ -21,7 +21,7 @@ private:
   DisplayController* displayController;
   ConsoleLightsController* consoleLightsController;
   bool isSleeping = false;
-  bool isMuted;
+  bool isMuted = false;
   long debugTime = 0;
 
 public:
@@ -109,14 +109,14 @@ void ConsoleController::operate() {
     consoleLightsController->stepper(isStopped);
   }
 
-  /*ButtonInfo* lights = buttonsController->lights();
+
+  ButtonInfo* lights = buttonsController->lights();
   if (!isSleeping && lights->isClicked()) {
     if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Lights is clicked");
     ledController->nextSequence();
     lights->reset();
     consoleLightsController->lights(true);
   }
-  */
 
   if (triggerSleeping) {
     if (CURRENT_MODE == DEBUG_MODE) Serial.println("ConsoleController: Forcing sleepmode");

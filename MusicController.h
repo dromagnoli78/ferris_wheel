@@ -6,7 +6,7 @@
 #include "Constants.h"
 #include "DisplayController.h"
 
-#define DELTA_TIME 50
+#define DELTA_TIME 100
 
 class MusicController {
 private:
@@ -102,7 +102,6 @@ void MusicController::adjustVolume() {
   }
   volume = map(v, 0, 4095, 0, maxVolume);
  
-  
   //Set volume value. From 0 to 30
 
   /*if (CURRENT_MODE == DEBUG_MODE) {
@@ -139,13 +138,13 @@ void MusicController::operate() {
   }
 
   // volume control
-  if ((time - lastVolumeCheckTime) > DELTA_TIME && !nextSongRequested) {
+  if ((time - lastVolumeCheckTime) > DELTA_TIME*2 && !nextSongRequested) {
     adjustVolume();
     lastVolumeCheckTime = time;
   }
 
   // music control every 500 seconds
-  if ((time - lastPlayCheckTime) > (DELTA_TIME * 10)) {
+  if ((time - lastPlayCheckTime) > (DELTA_TIME * 5)) {
     if (mp3Player->available()) {
       // Check the status of the player
       uint8_t readType = mp3Player->readType();

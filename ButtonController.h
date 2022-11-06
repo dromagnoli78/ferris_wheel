@@ -108,6 +108,9 @@ void ButtonController::begin() {
 void ButtonController::init() {
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("ButtonController init");
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    buttons[i].init();
+  }
 }
 
 void ButtonController::operate() {

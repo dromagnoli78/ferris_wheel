@@ -18,12 +18,21 @@ public:
   ButtonInfo(int iPin, char cName);
   void operate();
   void debug();
-
+  void init(){
+     if (CURRENT_MODE == DEBUG_MODE) {
+      Serial.print("Button Init:"),
+        Serial.print(buttonPin);
+      Serial.print(": ");
+      Serial.println(name);
+    }
+    lastTimeOnButtonControl = millis();
+  }
+;
   void begin() {
     pinMode(buttonPin, INPUT);
-    lastTimeOnButtonControl = millis();
+    
     if (CURRENT_MODE == DEBUG_MODE) {
-      Serial.print("Button Init:"),
+      Serial.print("Button setup:"),
         Serial.print(buttonPin);
       Serial.print(": ");
       Serial.println(name);

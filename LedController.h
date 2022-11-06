@@ -51,6 +51,7 @@ private:
   int pattern;
   int ledInSequence = 0;
   bool sequenceUp = true;
+  bool sequenceTriggered = false;
   Adafruit_NeoPixel strip;
   long debugTime = 0;
 public:
@@ -62,7 +63,11 @@ public:
   void begin();
   void operate();
   void ledSequence();
-  void nextSequence(){};
+  void nextSequence(){
+    if (CURRENT_MODE == DEBUG_MODE)
+      Serial.println("LedController nextSequence");
+    sequenceTriggered = true;
+  };
   void singleLedSequence();
   void growingLedSequence();
 };
@@ -115,12 +120,14 @@ void LedController::operate() {
   if (CONTROL_LIGHTS == DISABLED) return;
   long time = millis();
   if (time - lastTimeOnLedUpdate > deltaTimeOnLedChange) {
-    bool isColorChanged = false;
-    if (isColorChanged) {
+    if (sequenceTriggered) {
+      if (CURRENT_MODE == DEBUG_MODE)
+        Serial.println("LedController changing sequence");
       //displayController -> displayMessage("Verde");
       currentColorPattern++;
       lastTimeOnLedUpdate = time;
       currentColorPattern = currentColorPattern % COLOR_PATTERNS;
+      sequenceTriggered = false;
       //  buttonController -> setColorChanged(false);
     }
 

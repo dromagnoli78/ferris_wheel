@@ -136,7 +136,7 @@ void DisplayController::displayPreSleep() {
   long deltaTime = time - sleepModeStartTime;
   if (preSleep && (deltaTime > 500 && deltaTime < 1000)) {
     display.clearDisplay(); 
-    display.println(F("Buona Notte "));
+    display.println(F("Buonanotte"));
     display.display();
     preSleep = false;
   }

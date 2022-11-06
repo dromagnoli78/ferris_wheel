@@ -14,11 +14,11 @@
 // Buttons Signals
 #define BUTTON_MUSIC 12
 #define BUTTON_MUTE 13
-#define BUTTON_LED_SEQUENCE 14
+#define BUTTON_LED_SEQUENCE 19
 #define BUTTON_STEPPER 15
 #define BUTTON_SLEEPING 18
 
-#define BUTTON_SETTINGS 19
+#define BUTTON_SETTINGS 23
 #define BUTTON_ARROW_LEFT 35
 #define BUTTON_ARROW_RIGHT 34
 
@@ -47,7 +47,7 @@
 
 // Wheel
 #define WHEEL_NUM_LEDS 8
-#define WHEEL_LIGHTS_DATA_PIN 5
+#define WHEEL_LIGHTS_DATA_PIN 14
 #define PATTERN_PERIOD 12
 
 // Console
