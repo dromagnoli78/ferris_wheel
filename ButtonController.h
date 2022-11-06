@@ -66,16 +66,16 @@ public:
   };
 
   ButtonInfo* lights() {
-    return &buttonLights;
+    return &buttons[3];
   };
-  ButtonInfo& mute() {
-    return buttonMute;
+  ButtonInfo* mute() {
+    return&buttons[1];
   };
   ButtonInfo* stepper() {
     return &buttons[2];
   };
-  ButtonInfo& sleeping() {
-    return buttonSleeping;
+  ButtonInfo* sleeping() {
+    return &buttons[4];
   };
   ButtonInfo& settings() {
     return buttonSettings;

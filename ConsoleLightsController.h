@@ -19,8 +19,6 @@
 #define LED_SLEEP_COLOR strip.ColorHSV(240 * 182.04, 255, 255)
 #define LED_LIGHTS_COLOR strip.ColorHSV(54 * 182.04, 255, 255)
 #define LED_STEPPER_COLOR strip.ColorHSV(124 * 182.04, 255, 255)
-#define BLACK_COLOR strip.ColorHSV(0, 0, 0)
-
 #define BRIGHTNESS 96
 
 class ConsoleLightsController {
@@ -34,12 +32,18 @@ public:
   void init();
   void begin();
   void operate();
-  void sleepMode(){};
+
   void turnOff(int ledPosition) {
+    if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
     strip.setPixelColor(ledPosition, BLACK_COLOR);
   };
 
+  /** 
+  * Set the specified led element with the provided color.
+  * if syncSettings set the SETTINGS led to the same color.
+  */
   void setLed(int ledPosition, uint32_t color, bool syncSettings) {
+    if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
     strip.setPixelColor(ledPosition, color);
     if (syncSettings) {
       strip.setPixelColor(LED_SETTINGS, color);
@@ -66,6 +70,7 @@ public:
       turnOff(LED_SLEEP);
     }
   };
+
   void stepper(bool isStepping) {
     if (isStepping) {
       setLed(LED_STEPPER, LED_STEPPER_COLOR, true);

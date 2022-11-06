@@ -7,6 +7,7 @@
 #define SSD1306_NO_SPLASH 1
 #include <Adafruit_SSD1306.h>
 #include "Images.h"
+#include "Songs.h"
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 32  // OLED display height, in pixels
@@ -21,29 +22,42 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define TIME_MODE 0
-#define SLEEP_MODE 1
-#define MUSIC_MODE 2
+#define MUSIC_MODE 1
+#define SLEEP_MODE 2
+#define PRE_SLEEP_MODE 3
 
 class DisplayController {
 private:
   long deltaTime = 300;
   long lastTime;
-  long sleepTimeCheck=0;
+  long sleepTimeCheck=0; // Timer for sleepPhasesCheck
   int deltaSleepTime=200;
   int mode;
+  int lastMode;
+  int songIndex;
   int sleepPhase = 0;
+  long songTitleTimeBeingShown = 0; // Timer for song title being shown initially (used to switch to clock after a while)
+  bool isScrolling = false; 
+  long sleepModeStartTime = 0; // When sleep Mode started
+  long sleepModePeriod; // Timer for sleepMode interval to show the clock
+  bool preSleep = false;
+  SongGetter songGetter;
+   
 public:
   void init();
   void begin();
   void operate();
-  void displayMessage(char*);
+  void displayMessage(const char*);
   void displayTime(){};
   void displaySleep();
-  void nextSong();
-  void sleepMode(){};
+  void displayPreSleep();
+  void displaySong(int index);
+  void nextSong(int songIndex);
+  void sleeping(bool isSleeping);
 
   DisplayController() {
     lastTime = millis();
+    songGetter = SongGetter();
   };
 };
 
@@ -55,8 +69,10 @@ void DisplayController::begin() {
 
 void DisplayController::init() {
   display.clearDisplay();
+  display.setRotation(2);
   display.setTextSize(2);  // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE);
+  display.setTextWrap(false);
   display.setCursor(10, 0);
   display.println(F("Ciao\n    Nadia"));
   display.display();
@@ -65,25 +81,73 @@ void DisplayController::init() {
 void DisplayController::operate() {
   if (CONTROL_DISPLAY == DISABLED) return;
 
-  switch (mode){
-    case TIME_MODE:
-       displayTime();
-       break;
-    case SLEEP_MODE:
-       displaySleep();
-       break;
+  long time = millis();
+  if (time - lastTime > deltaTime) {
+    switch (mode){
+      case TIME_MODE:
+        displayTime();
+        break;
+      case PRE_SLEEP_MODE:
+        displayPreSleep();
+        break;
+      case SLEEP_MODE:
+        displaySleep();
+        break;
+      case MUSIC_MODE:
+        displaySong(songIndex);
+        break;
+    }
+  }
+}
+
+void DisplayController::displaySong(int index) {
+  if (!isScrolling)
+    displayMessage(songGetter.getTrack(index));
+  long time = millis();
+  if (time - songTitleTimeBeingShown > 60000) {
+    mode = TIME_MODE;
+    isScrolling = false;
+  }
+}
+
+  
+
+void DisplayController::displayMessage(const char* message) {
+  display.clearDisplay();
+  display.setCursor(10, 0);
+  display.setTextSize(2);
+  display.println(message);
+  display.display();
+  display.startscrollright(0x00, 0x0F);
+  isScrolling = true;
+}
+
+void DisplayController::nextSong(int index) {
+  if (CURRENT_MODE == DEBUG_MODE) Serial.println("DisplayController: Requested NextSong");
+  mode = MUSIC_MODE;
+  songIndex = index;
+  songTitleTimeBeingShown = millis();
+  isScrolling = false;
+}
+
+
+void DisplayController::displayPreSleep() {
+  long time=millis();
+  long deltaTime = time - sleepModeStartTime;
+  if (preSleep && (deltaTime > 500 && deltaTime < 1000)) {
+    display.clearDisplay(); 
+    display.println(F("Buona Notte "));
+    display.display();
+    preSleep = false;
   }
 
+  if (time - sleepModeStartTime > 5000) {
+    mode = SLEEP_MODE;
+    display.stopscroll();
+    isScrolling = false;
+  }
+   
 }
-
-void DisplayController::displayMessage(char* message) {
-  //display.println(F(message));
-}
-
-void DisplayController::nextSong() {
-  //display.println(F(message));
-}
-
 
 void DisplayController::displaySleep(){
   long time=millis();
@@ -118,9 +182,26 @@ void DisplayController::displaySleep(){
     sleepPhase%=5;
     display.display(); // Show the display buffer on the screen
     sleepTimeCheck = time;
-    }
+  }
+   
 
 }
+
+void DisplayController::sleeping(bool sleeping) {
+
+  if (CURRENT_MODE == DEBUG_MODE) Serial.println("DisplayController: SleepMode triggered");
+  if (sleeping) {
+    lastMode = mode;
+    mode = PRE_SLEEP_MODE;
+    sleepModeStartTime = millis();
+    isScrolling = false;
+    preSleep = true;
+  } else {
+    mode = lastMode;
+  }
+}
+
+
 
 
 #endif

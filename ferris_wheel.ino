@@ -35,7 +35,7 @@ DisplayController displayController = DisplayController();
 ConsoleLightsController consoleLightsController = ConsoleLightsController();
 LedController ledController = LedController();
 StepperController stepperController = StepperController(STEPS_PER_REVOLUTION, STEPPER_RPM, STEPPER_DELTA_TIME);
-MusicController musicController = MusicController();
+MusicController musicController = MusicController(&displayController);
 
 ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
 
@@ -64,12 +64,10 @@ void setup() {
   Serial.println(F("Ready DFPlayer Mini"));
   Serial.println("Setting Up!");
   musicController.begin(&mp3Player);
-
- 
   stepperController.begin();
   buttonsController.begin();
-  //ledController.begin();
-  //displayController.begin();
+  ledController.begin();
+  displayController.begin();
   //consoleLightsController.begin();
   consoleController.begin();
 }
@@ -99,13 +97,11 @@ void initialize() {
   stepperController.init();
   buttonsController.init();
   musicController.init();
-  //ledController.init();
+  ledController.init();
   //consoleLightsController.init();
-  //displayController.init();
+  displayController.init();
   consoleController.init();
-  //mp3Player.enableLoopAll();
-  //mp3Player.volume(3);
-  //mp3Player.play(2);
+  mp3Player.enableLoopAll();
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("Going to Working mode!");
   mode = WORKING_MODE;
@@ -123,8 +119,8 @@ void workingmode() {
   // Delegate to the console the operations 
   consoleController.operate();
   musicController.operate();
-  //displayController.operate();
-  //ledController.operate();
+  displayController.operate();
+  ledController.operate();
 
   // Last priority is the stepper
   stepperController.operate();
