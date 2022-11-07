@@ -14,12 +14,12 @@
 #define LED_EYE_2 7
 
 #define CONSOLE_TOTAL_LEDS 8
-#define LED_MUTE_COLOR strip.ColorHSV(0, 255, 100)
-#define LED_MUSIC_COLOR strip.ColorHSV(330 * 182.04, 255, 100)
-#define LED_SLEEP_COLOR strip.ColorHSV(240 * 182.04, 255, 30)
-#define LED_LIGHTS_COLOR strip.ColorHSV(54 * 182.04, 255, 100)
-#define LED_STEPPER_COLOR strip.ColorHSV(124 * 182.04, 255, 100)
-#define LED_EYES_COLOR strip.ColorHSV(40 * 182.04, 255, 100)
+#define LED_MUTE_COLOR strip.ColorHSV(0, 255, CONSOLE_LIGHTS_INTENSITY)
+#define LED_MUSIC_COLOR strip.ColorHSV(330 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
+#define LED_SLEEP_COLOR strip.ColorHSV(240 * 182.04, 255, SLEEP_LED_INTENTISY)
+#define LED_LIGHTS_COLOR strip.ColorHSV(54 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
+#define LED_STEPPER_COLOR strip.ColorHSV(124 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
+#define LED_EYES_COLOR strip.ColorHSV(40 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
 #define BRIGHTNESS 96
 
 class ConsoleLightsController {
@@ -31,6 +31,7 @@ private:
   uint32_t colors[CONSOLE_TOTAL_LEDS];
   uint8_t settingLed=0;
   unsigned long lastTimeCheck = 0;
+  unsigned long debugTime = 0;
   bool sleepMode = false;
 public:
   ConsoleLightsController(){
@@ -43,8 +44,6 @@ public:
   void turnOff(int ledPosition) {
     if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
     leds[ledPosition]=false;
-    //strip.setPixelColor(ledPosition, BLACK_COLOR);
-    //strip.show();
   };
 
   /** 
@@ -53,13 +52,10 @@ public:
   */
   void setLed(int ledPosition, uint32_t color, bool syncSettings) {
     if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
-    //strip.setPixelColor(ledPosition, color);
     leds[ledPosition] = true;
     if (syncSettings) {
       settingLed = ledPosition;
-      //strip.setPixelColor(LED_SETTINGS, color);
     }
-    //strip.show();
   };
 
   void adjustBrightness(uint8_t value) {
@@ -129,9 +125,6 @@ void ConsoleLightsController::operate() {
   unsigned long time = millis();
   uint32_t color = 0;
   if (time - lastTimeCheck > DELTA_TIME_CONSOLE_UPDATES) {
-    if (CURRENT_MODE == DEBUG_MODE) {
-        Serial.println("ConsoleLightsController operate");
-    }
     if (!sleepMode) {
       for (int i=0; i<CONSOLE_TOTAL_LEDS; i++) {
         color = leds[i] ? colors[i] : BLACK_COLOR;
@@ -147,6 +140,12 @@ void ConsoleLightsController::operate() {
     }
     strip.show();
     lastTimeCheck = time;
+  }
+  if (CURRENT_MODE == DEBUG_MODE) {
+    if (time - debugTime > 10000) {
+      Serial.println("ConsoleLightsController operate");
+      debugTime = time;
+    }
   }
 
 }

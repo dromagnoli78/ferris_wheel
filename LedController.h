@@ -25,6 +25,7 @@
 #define PATTERN_THEATHER 6
 #define PATTERN_RGB_LOOP 7
 #define PATTERN_SLEEPING 8
+#define PATTERN_SHUTDOWN 9
 
 
 #define SEQUENCE_PATTERNS 8
@@ -39,7 +40,7 @@ private:
 
   int deltaTimeOnLedChange = 100;
   int deltaTimeWhenSequence = LIGHTS_DELAY;
-  int deltaTimeOnSleepBreath = DELTA_SLEEPING_OFF;
+  int deltaTimeOnSleepBreath = DELTA_SLEEPING_SLOW;
   uint32_t colorPattern[COLOR_PATTERNS];
   uint32_t currentColorPattern = 0;
   unsigned long lastTimeOnLedUpdate;
@@ -47,6 +48,7 @@ private:
   unsigned long debugTime = 0;
   unsigned long lastTimeOnButtonControl;
   unsigned long lastTimeOnSleepCheck;
+  unsigned long sleepStartTime;
 
   uint8_t pattern = 0;
   int ledInSequence = 0;
@@ -78,6 +80,7 @@ public:
   void rainbow();
   void sleeping(bool isSleeping);
   void sleepingSequence();
+  void shutdownSequence();
   void setAll(byte red, byte green, byte blue) {
     for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
       strip.setPixelColor(i, strip.Color(red, green, blue));
@@ -108,11 +111,14 @@ void LedController::nextSequence() {
 void LedController::sleeping(bool isSleeping) {
   sleepMode = isSleeping;
   if (sleepMode) {
-    if (CURRENT_MODE == DEBUG_MODE)
-      Serial.println("LedController goingToSleep");
     previousPattern = pattern;
     pattern = PATTERN_SLEEPING;
     rgb_intensity = MAX_VALUE_LIGHT_FOR_SLEEP;
+    sleepStartTime = millis();
+    if (CURRENT_MODE == DEBUG_MODE){
+      Serial.print("LedController goingToSleep with sleepTime:");
+      Serial.println(sleepStartTime);
+    }
     fadeIn = false;
   }
 }
@@ -192,12 +198,18 @@ void LedController::ledSequence() {
     case PATTERN_SLEEPING:
       sleepingSequence();
       break;
+    case PATTERN_SHUTDOWN:
+      shutdownSequence();
+      break;
   }
 }
 
 void LedController::sleepingSequence() {
   unsigned long time = millis();
   if (time - lastTimeOnSleepCheck > deltaTimeOnSleepBreath) {
+    if (CURRENT_MODE == DEBUG_MODE) {
+        Serial.println("LedController Sleeping sequence:");
+      }
     for (int i = 0; i < 4; i++) {
       strip.setPixelColor(i, BLACK_COLOR);
     }
@@ -208,15 +220,48 @@ void LedController::sleepingSequence() {
     
     if (fadeIn) {
       rgb_intensity++;
+      if (rgb_intensity == (MIN_VALUE_LIGHT_FOR_SLEEP + SLEEP_THRESHOLD)) {
+        deltaTimeOnSleepBreath = DELTA_SLEEPING_SLOW;
+      }
       if (rgb_intensity == MAX_VALUE_LIGHT_FOR_SLEEP) {
         fadeIn = false;
       }
     } else {
       rgb_intensity--;
+      if (rgb_intensity == (MIN_VALUE_LIGHT_FOR_SLEEP + SLEEP_THRESHOLD)) {
+        deltaTimeOnSleepBreath = DELTA_SLEEPING_FAST;
+      }
       if (rgb_intensity == MIN_VALUE_LIGHT_FOR_SLEEP) {
         fadeIn = true;
       }
     }
+    lastTimeOnSleepCheck = time;
+    if (time - sleepStartTime > (SLEEP_SHUTDOWN - 3000)) {
+      pattern = PATTERN_SHUTDOWN;
+    }
+    strip.show();
+  }
+}
+
+void LedController::shutdownSequence() {
+  unsigned long time = millis();
+  if (time - lastTimeOnSleepCheck > deltaTimeOnSleepBreath) {
+    for (int i = 0; i < 4; i++) {
+      strip.setPixelColor(i, BLACK_COLOR);
+    }
+
+    for (int i = 4; i < WHEEL_NUM_LEDS; i++) {
+      strip.setPixelColor(i, strip.Color(0, 0, rgb_intensity));
+    }
+    
+    rgb_intensity--;
+    if (rgb_intensity == (MIN_VALUE_LIGHT_FOR_SLEEP + SLEEP_THRESHOLD)) {
+      deltaTimeOnSleepBreath = DELTA_SLEEPING_FAST;
+    }
+    if (rgb_intensity == 0) {
+      pattern = DO_NOTHING;
+    }
+
     lastTimeOnSleepCheck = time;
     strip.show();
   }
@@ -240,6 +285,8 @@ void LedController::singleLedSequence() {
       if (ledInSequence == -1) {
         ledInSequence++;
         sequenceUp = true;
+        currentColorPattern++;
+        currentColorPattern %=COLOR_PATTERNS;
       }
     }
 
@@ -304,6 +351,8 @@ void LedController::growingLedSequence() {
           shrink = false;
           sequenceUp = true;
           ledInSequence++;
+          currentColorPattern++;
+          currentColorPattern %=COLOR_PATTERNS;
         }
       }
     }

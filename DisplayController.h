@@ -23,8 +23,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define TIME_MODE 0
 #define MUSIC_MODE 1
-#define SLEEP_MODE 2
-#define PRE_SLEEP_MODE 3
+#define PRE_SLEEP_MODE 2
+#define SLEEP_MODE 3
+#define EMPTY_MODE 4
+
 
 class DisplayController {
 private:
@@ -53,6 +55,7 @@ public:
   void displaySleep();
   void displayPreSleep();
   void displaySong(int index);
+  void displayNone();
   void nextSong(int songIndex);
   void sleeping(bool isSleeping);
 
@@ -104,11 +107,19 @@ void DisplayController::operate() {
       case SLEEP_MODE:
         displaySleep();
         break;
+      case EMPTY_MODE:
+        displayNone();
+        break;
       case MUSIC_MODE:
         displaySong(songIndex);
         break;
     }
   }
+}
+
+void DisplayController::displayNone(){
+  display.clearDisplay();
+  display.display();
 }
 
 void DisplayController::displaySong(int index) {
@@ -153,7 +164,7 @@ void DisplayController::displayPreSleep() {
     preSleep = false;
   }
 
-  if (time - sleepModeStartTime > 5000) {
+  if (time - sleepModeStartTime > DELAY_SOFT_START_SLEEP) {
     mode = SLEEP_MODE;
     isScrolling = false;
   }
@@ -193,9 +204,11 @@ void DisplayController::displaySleep(){
     sleepPhase%=5;
     display.display(); // Show the display buffer on the screen
     sleepTimeCheck = time;
-  }
-   
 
+    if (time - sleepModeStartTime > SLEEP_SHUTDOWN - DELAY_SOFT_START_SLEEP) {
+      mode = EMPTY_MODE;
+    }
+  }
 }
 
 void DisplayController::sleeping(bool sleeping) {

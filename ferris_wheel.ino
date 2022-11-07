@@ -19,6 +19,10 @@
 #define DIAGNOSE_MODE 104
 #define WORKING_MODE 105
 #define SETTING_MODE 106
+#define SLEEPING_MODE 200
+
+#define uS_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */ 
+#define TIME_TO_SLEEP 5
 
 #define STOP 1
 #define MODE WORKING_MODE
@@ -87,6 +91,8 @@ void loop() {
     case WORKING_MODE:
       workingmode();
       break;
+    case SLEEPING_MODE:
+      break;
   }
 }
 
@@ -125,4 +131,13 @@ void workingmode() {
   // Last priority is the stepper
   stepperController.operate();
   consoleLightsController.operate();
+
+  if (consoleController.isReadyForSleep()) {
+    if (CURRENT_MODE == DEBUG_MODE)
+      Serial.println("Everything is off! Sleeping");
+      delay(1000);
+      esp_deep_sleep_start();
+      mode = SLEEPING_MODE;
+      loop();
+  }
 }

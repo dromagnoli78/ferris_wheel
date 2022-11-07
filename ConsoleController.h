@@ -23,6 +23,8 @@ private:
   bool isSleeping = false;
   bool isMuted = false;
   long debugTime = 0;
+  bool readyForSleep = false;
+  unsigned long sleepingStartTime = 0;
 
 public:
   ConsoleController(
@@ -43,6 +45,7 @@ public:
   void init();
   void begin();
   void operate();
+  bool isReadyForSleep(){return readyForSleep;};
 };
 
 void ConsoleController::begin() {
@@ -82,7 +85,7 @@ void ConsoleController::operate() {
     sleeping->reset();
     consoleLightsController->sleeping(isSleeping);
     triggerSleeping = true;
-    
+ 
   }
 
 
@@ -124,6 +127,13 @@ void ConsoleController::operate() {
     musicController->sleeping(isSleeping);
     consoleLightsController->sleeping(isSleeping);
     ledController->sleeping(isSleeping);
+    if (isSleeping) {
+      sleepingStartTime = time;
+      if (CURRENT_MODE == DEBUG_MODE) {
+        Serial.print("ConsoleController Sleeping time is:");
+        Serial.println(sleepingStartTime);
+      }
+    }  
   }
 
   if (CURRENT_MODE == DEBUG_MODE) {
@@ -133,6 +143,11 @@ void ConsoleController::operate() {
       //music->debug();
       debugTime = time;
       }
+   }
+
+   if (isSleeping && (time - sleepingStartTime > (SLEEP_SHUTDOWN+5000))) {
+     Serial.println("ConsoleController ready for sleep");
+     readyForSleep = true;
    }
 
 }
