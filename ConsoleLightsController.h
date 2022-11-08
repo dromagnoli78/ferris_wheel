@@ -24,18 +24,18 @@
 
 class ConsoleLightsController {
 private:
-  //CRGB consoleLeds[CONSOLE_TOTAL_LEDS];
-  //CRGBArray<CONSOLE_TOTAL_LEDS> consoleLedsArr;
-  Adafruit_NeoPixel strip;
+  // timing variables
+  unsigned long timeOfLastCheck = 0;
+  unsigned long timeOfLastDebug = 0;
   bool leds[CONSOLE_TOTAL_LEDS];
   uint32_t colors[CONSOLE_TOTAL_LEDS];
-  uint8_t settingLed=0;
-  unsigned long lastTimeCheck = 0;
-  unsigned long debugTime = 0;
+  uint8_t settingsLed = 0; // Which led should be replicated by the settings
   bool sleepMode = false;
+
+  Adafruit_NeoPixel strip;
 public:
-  ConsoleLightsController(){
- strip = Adafruit_NeoPixel(CONSOLE_TOTAL_LEDS, CONSOLE_LIGHTS_CONTROLLER_DATA_PIN, NEO_GRB + NEO_KHZ800);
+  ConsoleLightsController() {
+    strip = Adafruit_NeoPixel(CONSOLE_TOTAL_LEDS, CONSOLE_LIGHTS_CONTROLLER_DATA_PIN, NEO_GRB + NEO_KHZ800);
   };
   void init();
   void begin();
@@ -43,19 +43,26 @@ public:
 
   void turnOff(int ledPosition) {
     if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
-    leds[ledPosition]=false;
+    leds[ledPosition] = false;
   };
 
   /** 
-  * Set the specified led element with the provided color.
-  * if syncSettings set the SETTINGS led to the same color.
+  * Set the specified led element.
+  * if syncSettings, set the SETTINGS led to that led position.
   */
-  void setLed(int ledPosition, uint32_t color, bool syncSettings) {
+  void setLed(int ledPosition, bool syncSettings) {
     if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
     leds[ledPosition] = true;
     if (syncSettings) {
-      settingLed = ledPosition;
+      settingsLed = ledPosition;
     }
+  };
+
+  void shutdown() {
+    for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
+      strip.setPixelColor(i, strip.Color(0, 0, 0));
+    }
+    strip.show();
   };
 
   void adjustBrightness(uint8_t value) {
@@ -64,7 +71,7 @@ public:
 
   void mute(bool isMuted) {
     if (isMuted) {
-      setLed(LED_MUTE, LED_MUTE_COLOR, false);
+      setLed(LED_MUTE, false);
       turnOff(LED_MUSIC);
     } else {
       turnOff(LED_MUTE);
@@ -74,15 +81,17 @@ public:
   void sleeping(bool isSleeping) {
     sleepMode = isSleeping;
     if (isSleeping) {
-      setLed(LED_SLEEP, LED_SLEEP_COLOR, false);
+      setLed(LED_SLEEP, false);
     } else {
       turnOff(LED_SLEEP);
     }
   };
 
+
+
   void stepper(bool isStepping) {
     if (isStepping) {
-      setLed(LED_STEPPER, LED_STEPPER_COLOR, true);
+      setLed(LED_STEPPER, true);
     } else {
       turnOff(LED_STEPPER);
     }
@@ -90,70 +99,70 @@ public:
 
   void lights(bool onOff) {
     if (onOff) {
-      setLed(LED_LIGHTS, LED_LIGHTS_COLOR, true);
+      setLed(LED_LIGHTS, true);
     } else {
       turnOff(LED_LIGHTS);
     }
   };
+
   void music() {
-    setLed(LED_MUSIC, LED_MUSIC_COLOR, true);
+    setLed(LED_MUSIC, true);
   }
 };
 
 void ConsoleLightsController::init() {
-    if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("ConsoleLightsController init");
-    for (int i=0; i<CONSOLE_TOTAL_LEDS;i++) {
-      leds[i]=false;
-    }
-    leds[LED_EYE_1]= true;
-    leds[LED_EYE_2]= true;
-    colors[LED_MUSIC] = LED_MUSIC_COLOR;
-    colors[LED_MUTE] = LED_MUTE_COLOR;
-    colors[LED_STEPPER] = LED_STEPPER_COLOR;
-    colors[LED_LIGHTS] = LED_LIGHTS_COLOR;
-    colors[LED_SLEEP] = LED_SLEEP_COLOR;
-    colors[LED_SETTINGS] = BLACK_COLOR;
-    colors[LED_EYE_1] = LED_EYES_COLOR;
-    colors[LED_EYE_2] = LED_EYES_COLOR;
-    settingLed = LED_SETTINGS;
+  for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
+    leds[i] = false;
+  }
+  leds[LED_EYE_1] = true;
+  leds[LED_EYE_2] = true;
 
-   
+  // Each led has its own specific color
+  colors[LED_MUSIC] = LED_MUSIC_COLOR;
+  colors[LED_MUTE] = LED_MUTE_COLOR;
+  colors[LED_STEPPER] = LED_STEPPER_COLOR;
+  colors[LED_LIGHTS] = LED_LIGHTS_COLOR;
+  colors[LED_SLEEP] = LED_SLEEP_COLOR;
+  colors[LED_SETTINGS] = BLACK_COLOR;
+  colors[LED_EYE_1] = LED_EYES_COLOR;
+  colors[LED_EYE_2] = LED_EYES_COLOR;
+  settingsLed = LED_SETTINGS;
 }
 
 void ConsoleLightsController::operate() {
   unsigned long time = millis();
   uint32_t color = 0;
-  if (time - lastTimeCheck > DELTA_TIME_CONSOLE_UPDATES) {
+  if (time - timeOfLastCheck > DELTA_TIME_CONSOLE_UPDATES) {
     if (!sleepMode) {
-      for (int i=0; i<CONSOLE_TOTAL_LEDS; i++) {
+      for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
         color = leds[i] ? colors[i] : BLACK_COLOR;
         strip.setPixelColor(i, color);
       }
-      strip.setPixelColor(LED_SETTINGS, colors[settingLed]);
+      strip.setPixelColor(LED_SETTINGS, colors[settingsLed]);
     } else {
       // Implement transition
-      for (int i=0; i<CONSOLE_TOTAL_LEDS; i++) {
+      for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
         strip.setPixelColor(i, BLACK_COLOR);
       }
       strip.setPixelColor(LED_SLEEP, LED_SLEEP_COLOR);
     }
     strip.show();
-    lastTimeCheck = time;
+    timeOfLastCheck = time;
   }
   if (CURRENT_MODE == DEBUG_MODE) {
-    if (time - debugTime > 10000) {
+    if (time - timeOfLastDebug > 10000) {
       Serial.println("ConsoleLightsController operate");
-      debugTime = time;
+      timeOfLastDebug = time;
     }
   }
-
 }
 
 void ConsoleLightsController::begin() {
   if (CURRENT_MODE == DEBUG_MODE)
     Serial.println("ConsoleLightsController begin");
- 
+
   delay(SETUP_DELAY);  // 3 second delay for recovery
   strip.setBrightness(BRIGHTNESS);
   for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {

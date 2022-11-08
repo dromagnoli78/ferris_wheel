@@ -14,6 +14,11 @@
 
 class ConsoleController {
 private:
+
+// Timing variables
+  unsigned long timeOfLastDebug = 0;
+  unsigned long timeSleepingHasStarted = 0; 
+
   ButtonController* buttonsController;
   LedController* ledController;
   MusicController* musicController;
@@ -22,9 +27,8 @@ private:
   ConsoleLightsController* consoleLightsController;
   bool isSleeping = false;
   bool isMuted = false;
-  long debugTime = 0;
   bool readyForSleep = false;
-  unsigned long sleepingStartTime = 0;
+
 
 public:
   ConsoleController(
@@ -128,25 +132,24 @@ void ConsoleController::operate() {
     consoleLightsController->sleeping(isSleeping);
     ledController->sleeping(isSleeping);
     if (isSleeping) {
-      sleepingStartTime = time;
+      timeSleepingHasStarted = time;
       if (CURRENT_MODE == DEBUG_MODE) {
         Serial.print("ConsoleController Sleeping time is:");
-        Serial.println(sleepingStartTime);
+        Serial.println(timeSleepingHasStarted);
       }
     }  
   }
 
   if (CURRENT_MODE == DEBUG_MODE) {
-     if (time - debugTime > 20000) {
+     if (time - timeOfLastDebug > 20000) {
       Serial.println("ConsoleController operate");
-      //stepper->debug();
-      //music->debug();
-      debugTime = time;
+      timeOfLastDebug = time;
       }
    }
 
-   if (isSleeping && (time - sleepingStartTime > (SLEEP_SHUTDOWN+5000))) {
+   if (isSleeping && (time - timeSleepingHasStarted > (SLEEP_SHUTDOWN+5000))) {
      Serial.println("ConsoleController ready for sleep");
+     consoleLightsController->shutdown();
      readyForSleep = true;
    }
 

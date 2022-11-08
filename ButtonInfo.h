@@ -2,15 +2,15 @@
 #define ButtonInfo_h
 
 /*
-Each Button can be associated to a ButtonInfo instance class
+Each Button can be associated to a ButtonInfo instance
 */
 class ButtonInfo {
 private:
-  int buttonPin;                 // The PIN associated to the button
+  int buttonPin;                          // The PIN associated to the button
   unsigned long lastTimeOnButtonControl;  // The millis() of the last time the button state has been taken into account
-  bool pressed;                  // True if the button has been long pressed
-  bool clicked = false;                  // True if the button has been clicked
-  char name;
+  bool pressed;                           // True if the button has been long pressed
+  bool clicked = false;                   // True if the button has been clicked
+  char name;                              // Signature of the button for quick reference during debug
 
 public:
   ButtonInfo()
@@ -18,23 +18,22 @@ public:
   ButtonInfo(int iPin, char cName);
   void operate();
   void debug();
-  void init(){
-     if (CURRENT_MODE == DEBUG_MODE) {
-      Serial.print("Button Init:"),
-        Serial.print(buttonPin);
-      Serial.print(": ");
+  void init() {
+    if (CURRENT_MODE == DEBUG_MODE) {
+      Serial.print("Button Init:");
+      Serial.print(buttonPin);
+      Serial.print(":");
       Serial.println(name);
     }
     lastTimeOnButtonControl = millis();
-  }
-;
+  };
   void begin() {
     pinMode(buttonPin, INPUT);
-    
+
     if (CURRENT_MODE == DEBUG_MODE) {
-      Serial.print("Button setup:"),
-        Serial.print(buttonPin);
-      Serial.print(": ");
+      Serial.print("Button setup:");
+      Serial.print(buttonPin);
+      Serial.print(":");
       Serial.println(name);
     }
   };

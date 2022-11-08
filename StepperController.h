@@ -62,6 +62,8 @@ void StepperController::operate() {
         stepper.setSpeed(stSpeed);
       } else {
         isStopped = true;
+
+        // Power off all the 4 phases
         digitalWrite(STEPPER_IN_1, LOW);
         digitalWrite(STEPPER_IN_2, LOW);
         digitalWrite(STEPPER_IN_3, LOW);
