@@ -22,6 +22,7 @@ private:
   int lastTrack;
   int lastFolder = 0;
   int currentTrack = 0;
+  int sleepTrack = 0;
   int folder = 0;
   int8_t volume;
   int8_t previousVolume;
@@ -78,6 +79,7 @@ void MusicController::init() {
   previousVolume = volume;
   unsigned long time = millis();
   lastTrack = mp3Player->readFileCounts();
+  sleepTrack = lastTrack;
 
   mp3Player->EQ(DFPLAYER_EQ_CLASSIC);
   lastVolumeCheckTime = time;
@@ -177,7 +179,7 @@ void MusicController::operate() {
         displayController->nextSong(currentTrack);
         currentTrack++;
       } else {
-        currentTrack = SLEEP_SONG;
+        currentTrack = sleepTrack;
         if (time - sleepStartTime < DELAY_SOFT_START_SLEEP) {
           play = false;
         }

@@ -179,7 +179,7 @@ void DisplayController::displaySong(int index) {
 
 void DisplayController::displayMessage(const char* message, int fontsize) {
   display.clearDisplay();
-  display.setCursor(10, 0);
+  display.setCursor(0, 0);
   display.setTextSize(fontsize);
   display.setFont();
   display.println(message);

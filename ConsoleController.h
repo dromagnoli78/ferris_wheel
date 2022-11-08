@@ -10,8 +10,6 @@
 #include "DisplayController.h"
 #include "ConsoleLightsController.h"
 
-
-
 class ConsoleController {
 private:
 
@@ -102,6 +100,7 @@ void ConsoleController::operate() {
   }
  
 
+  // Actions on stepper
   ButtonInfo* stepper = buttonsController->stepper();
   if (!isSleeping && stepper->isClicked()) {
 

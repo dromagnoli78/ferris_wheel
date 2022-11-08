@@ -50,8 +50,13 @@ char* RTCController::getTimeString() {
 
 const unsigned char* RTCController::getHourImage() {
   DateTime now = rtc.now();
-  int hour = now.hour() % 12;
-  switch (hour) {
+  int minute = now.minute();
+  int hour = now.hour();
+  // Let's add one hour if the minutes are > 45
+  if (minute > 45)
+    hour++;
+  int hourImage = hour % 12;
+  switch (hourImage) {
     case 0:
       return c12S;
     case 1:
