@@ -18,7 +18,7 @@ public:
 };
 
 void RTCController::begin() {
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("LedController begin");
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -26,7 +26,7 @@ void RTCController::begin() {
   }
 
   if (!rtc.isrunning()) {
-    if (CURRENT_MODE == DEBUG_MODE)
+    if (CURRENT_MODE > DEBUG_MODE)
       Serial.println("RTC is NOT running, let's set the time!");
     // When time needs to be set on a new device, or after a power loss, the
     // following line sets the RTC to the date & time this sketch was compiled

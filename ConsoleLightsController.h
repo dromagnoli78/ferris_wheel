@@ -111,7 +111,7 @@ public:
 };
 
 void ConsoleLightsController::init() {
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ConsoleLightsController init");
   for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
     leds[i] = false;
@@ -151,7 +151,7 @@ void ConsoleLightsController::operate() {
     strip.show();
     timeOfLastCheck = time;
   }
-  if (CURRENT_MODE == DEBUG_MODE) {
+  if (CURRENT_MODE > DEBUG_MODE) {
     if (time - timeOfLastDebug > 10000) {
       Serial.println("ConsoleLightsController operate");
       timeOfLastDebug = time;
@@ -160,7 +160,7 @@ void ConsoleLightsController::operate() {
 }
 
 void ConsoleLightsController::begin() {
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ConsoleLightsController begin");
 
   delay(SETUP_DELAY);  // 3 second delay for recovery

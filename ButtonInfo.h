@@ -19,7 +19,7 @@ public:
   void operate();
   void debug();
   void init() {
-    if (CURRENT_MODE == DEBUG_MODE) {
+    if (CURRENT_MODE > DEBUG_MODE) {
       Serial.print("Button Init:");
       Serial.print(buttonPin);
       Serial.print(":");
@@ -30,7 +30,7 @@ public:
   void begin() {
     pinMode(buttonPin, INPUT);
 
-    if (CURRENT_MODE == DEBUG_MODE) {
+    if (CURRENT_MODE > DEBUG_MODE) {
       Serial.print("Button setup:");
       Serial.print(buttonPin);
       Serial.print(":");
@@ -49,7 +49,7 @@ public:
   void reset() {
     // Reset the status of the button so it results not clicked anymore
     clicked = false;
-    if (CURRENT_MODE == DEBUG_MODE) {
+    if (CURRENT_MODE > DEBUG_MODE) {
       Serial.print("Button Reset:");
       Serial.println(name);
     }
@@ -66,7 +66,7 @@ void ButtonInfo::operate() {
   if (button == BUTTON_PRESSED) {
     if ((time - lastTimeOnButtonControl) > BUTTON_CONTROLS_DELTA_TIME) {
       // Set the button to clicked and set the time
-      if (CURRENT_MODE == DEBUG_MODE) {
+      if (CURRENT_MODE > DEBUG_MODE) {
         Serial.print("Button Clicked:");
         Serial.println(name);
       }

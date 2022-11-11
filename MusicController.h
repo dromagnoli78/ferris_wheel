@@ -54,7 +54,7 @@ public:
     if (!sleepMode) {
       nextSongRequested = true;
       canPlay = true;
-      if (CURRENT_MODE == DEBUG_MODE) Serial.println("MusicController Requesting Next Song");
+      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController Requesting Next Song");
       return getTrackNumber();
     }
 
@@ -68,7 +68,7 @@ public:
 
 void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
 
-  if (CURRENT_MODE == DEBUG_MODE) Serial.println("MusicController begin");
+  if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController begin");
   mp3Player = pMp3Player;
 }
 
@@ -84,7 +84,7 @@ void MusicController::init() {
   mp3Player->EQ(DFPLAYER_EQ_CLASSIC);
   lastVolumeCheckTime = time;
   lastPlayCheckTime = time;
-  if (CURRENT_MODE == DEBUG_MODE){
+  if (CURRENT_MODE > DEBUG_MODE){
      Serial.println("MusicController init");
      Serial.print("Found songs: ");
      Serial.println(lastTrack);
@@ -102,7 +102,7 @@ void MusicController::adjustVolume() {
     if (volume < 0) {
       volume =0;
     }
-    if (CURRENT_MODE == DEBUG_MODE){
+    if (CURRENT_MODE > DEBUG_MODE){
      Serial.print("MusicController Reducing maxVolume for sleep. Vol:");
      Serial.println(volume);
     }
@@ -117,7 +117,7 @@ void MusicController::adjustVolume() {
  
   //Set volume value. From 0 to 30
 
-  /*if (CURRENT_MODE == DEBUG_MODE) {
+  /*if (CURRENT_MODE > DEBUG_MODE) {
     unsigned long time = millis();
     if (time - lastDebugTime > 5000) {
       Serial.print("MusicController adjusting volume:");
@@ -136,11 +136,11 @@ void MusicController::operate() {
   // leave if muted
   if (volumeTriggered) {
     if (!muted) {
-      if (CURRENT_MODE == DEBUG_MODE) Serial.println("MusicController Muting");
+      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController Muting");
       mp3Player->volume(0);
       muted = true;
     } else {
-      if (CURRENT_MODE == DEBUG_MODE) Serial.println("MusicController Un-Muting ");
+      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController Un-Muting ");
       adjustVolume();
       muted = false;
     }
@@ -162,7 +162,7 @@ void MusicController::operate() {
     if (mp3Player->available()) {
       // Check the status of the player
       uint8_t readType = mp3Player->readType();
-      if (CURRENT_MODE == DEBUG_MODE) {
+      if (CURRENT_MODE > DEBUG_MODE) {
         printDetail(readType, mp3Player->read()); 
       }
 
@@ -174,7 +174,7 @@ void MusicController::operate() {
 
     bool play = true;
     if (canPlay && (!playing || nextSongRequested)) {
-      if (CURRENT_MODE == DEBUG_MODE) Serial.println("MusicController playing next");
+      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController playing next");
       if (!sleepMode) {
         displayController->nextSong(currentTrack);
         currentTrack++;
@@ -185,13 +185,13 @@ void MusicController::operate() {
         }
       }
       
-      if (CURRENT_MODE == DEBUG_MODE) {
+      if (CURRENT_MODE > DEBUG_MODE) {
         Serial.print("MusicController: song number:");
         Serial.println(currentTrack);
       }
       if (play) mp3Player->play(currentTrack);
 
-      if (CURRENT_MODE == DEBUG_MODE) {
+      if (CURRENT_MODE > DEBUG_MODE) {
         Serial.println("MusicController is playing");
       }
       currentTrack = currentTrack % lastTrack;
@@ -222,7 +222,7 @@ void MusicController::sleeping(bool sleeping){
       sleepingSteps = 1;
     }
     sleepingStepInterval = SLEEP_SHUTDOWN / sleepingSteps;
-    if (CURRENT_MODE == DEBUG_MODE) {
+    if (CURRENT_MODE > DEBUG_MODE) {
       Serial.print("DisplayController: SleepMode triggered with sleepingStepInterval:");
       Serial.println(sleepingStepInterval);
     }

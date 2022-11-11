@@ -45,7 +45,7 @@ ConsoleController consoleController = ConsoleController(&ledController, &musicCo
 
 
 void setup() {
-  if (CURRENT_MODE == DEBUG_MODE) {
+  if (CURRENT_MODE > DEBUG_MODE) {
     Serial.begin(115200);
     Serial.println("Setting up");
   }
@@ -98,7 +98,7 @@ void loop() {
 
 void initialize() {
   
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("Initializing!");
   stepperController.init();
   buttonsController.init();
@@ -108,7 +108,7 @@ void initialize() {
   displayController.init();
   consoleController.init();
   mp3Player.enableLoopAll();
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("Going to Working mode!");
   mode = WORKING_MODE;
 }
@@ -133,7 +133,7 @@ void workingmode() {
   consoleLightsController.operate();
 
   if (consoleController.isReadyForSleep()) {
-    if (CURRENT_MODE == DEBUG_MODE)
+    if (CURRENT_MODE > DEBUG_MODE)
       Serial.println("Everything is off! Sleeping");
       delay(1000);
       esp_deep_sleep_start();

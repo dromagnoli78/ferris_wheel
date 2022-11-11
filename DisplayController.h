@@ -100,7 +100,7 @@ void DisplayController::operate() {
   if (CONTROL_DISPLAY == DISABLED) return;
 
   unsigned long time = millis();
-  if (CURRENT_MODE == DEBUG_MODE) {
+  if (CURRENT_MODE > DEBUG_MODE) {
     if (time - timeOfLastDebug > 20000) {
       Serial.println("DisplayController operate");
       timeOfLastDebug = time;
@@ -189,7 +189,7 @@ void DisplayController::displayMessage(const char* message, int fontsize) {
 }
 
 void DisplayController::nextSong(int index) {
-  if (CURRENT_MODE == DEBUG_MODE) Serial.println("DisplayController: Requested NextSong");
+  if (CURRENT_MODE > DEBUG_MODE) Serial.println("DisplayController: Requested NextSong");
   mode = MUSIC_MODE;
   songIndex = index;
   timeSongTitleBeingShown = millis();
@@ -258,7 +258,7 @@ void DisplayController::displaySleep() {
 }
 
 void DisplayController::sleeping(bool sleeping) {
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("DisplayController: SleepMode triggered");
   if (sleeping) {
     lastMode = mode;

@@ -23,7 +23,7 @@ const char* songs[]={
 "\nUn\'onda scivola",
 "\nCome un Coriandolo",
 "\nPolvere di Sole",
-// The lullaby is always the last song. 
+// The lullaby is always the last song, being put on folder 99. 
 // Dont' move it
 "\nStrauss\n\nLullaby"
 };

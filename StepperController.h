@@ -30,13 +30,13 @@ public:
 
 bool StepperController::triggerMovement() {
   moveTriggered = true;
-   if (CURRENT_MODE == DEBUG_MODE)
+   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("StepperController triggered");
   return !isStopped;
 }
 
 void StepperController::begin() {
-  if (CURRENT_MODE == DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("StepperController begin");
   //stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   //stepper->setRpm(STEPPER_RPM);
@@ -44,7 +44,7 @@ void StepperController::begin() {
 }
 
 void StepperController::init() {
-    if (CURRENT_MODE == DEBUG_MODE)
+    if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("StepperController init");
   //stepper->setSpeed(stSpeed);
   //stepper->step(100);
