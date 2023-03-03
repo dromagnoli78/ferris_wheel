@@ -38,7 +38,7 @@ ButtonController buttonsController = ButtonController();
 DisplayController displayController = DisplayController();
 ConsoleLightsController consoleLightsController = ConsoleLightsController();
 LedController ledController = LedController();
-StepperController stepperController = StepperController(STEPS_PER_REVOLUTION, STEPPER_RPM, STEPPER_DELTA_TIME);
+StepperController stepperController = StepperController(STEPPER_DELTA_TIME);
 MusicController musicController = MusicController(&displayController);
 
 ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
@@ -51,14 +51,13 @@ void setup() {
   }
   
   //mySerial.begin(9600);
-  mySerial.begin(9600, SERIAL_8N1,MP3_RX_PIN, MP3_TX_PIN);
-
+  if (CONTROL_MUSIC == ENABLED)
+    mySerial.begin(9600, SERIAL_8N1,MP3_RX_PIN, MP3_TX_PIN);
 
   Serial.println();
-  Serial.println(F("DFRobot DFPlayer Mini Demo"));
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
 
-  if (!mp3Player.begin(mySerial)) {  //Use softwareSerial to communicate with mp3.
+  if (CONTROL_MUSIC == ENABLED && !mp3Player.begin(mySerial)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
     Serial.println(F("2.Please insert the SD card!"));
@@ -107,7 +106,8 @@ void initialize() {
   consoleLightsController.init();
   displayController.init();
   consoleController.init();
-  mp3Player.enableLoopAll();
+  if (CONTROL_MUSIC == ENABLED)
+    mp3Player.enableLoopAll();
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("Going to Working mode!");
   mode = WORKING_MODE;
@@ -140,4 +140,5 @@ void workingmode() {
       mode = SLEEPING_MODE;
       loop();
   }
+
 }

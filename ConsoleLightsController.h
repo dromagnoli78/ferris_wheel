@@ -111,8 +111,10 @@ public:
 };
 
 void ConsoleLightsController::init() {
+
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ConsoleLightsController init");
+  if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
   for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
     leds[i] = false;
   }
@@ -132,6 +134,7 @@ void ConsoleLightsController::init() {
 }
 
 void ConsoleLightsController::operate() {
+  if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
   unsigned long time = millis();
   uint32_t color = 0;
   if (time - timeOfLastCheck > DELTA_TIME_CONSOLE_UPDATES) {
@@ -160,6 +163,7 @@ void ConsoleLightsController::operate() {
 }
 
 void ConsoleLightsController::begin() {
+  if (CONTROL_CONSOLE_LIGHTS == DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ConsoleLightsController begin");
 

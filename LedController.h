@@ -140,6 +140,7 @@ void LedController::sleeping(bool isSleeping) {
 }
 
 void LedController::begin() {
+  if (CONTROL_LIGHTS == DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("LedController begin");
 
@@ -151,8 +152,10 @@ void LedController::begin() {
 }
 
 void LedController::init() {
+  
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("LedController init");
+  if (CONTROL_LIGHTS == DISABLED) return;
   unsigned long time = millis();
   timeLastSequenceUpdate = time;
   timeLastSleepCheck = time;

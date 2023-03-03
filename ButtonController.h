@@ -4,6 +4,10 @@
 #include "Arduino.h"
 #include "Constants.h"
 #include "ButtonInfo.h"
+#include <Wire.h>
+
+volatile int st = LOW;  
+volatile bool up = LOW;
 
 #define NUM_BUTTONS 10
 
@@ -76,6 +80,7 @@ public:
 };
 
 void ButtonController::begin() {
+  if (CONTROL_BUTTON == DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ButtonController begin");
   for (int i = 0; i < NUM_BUTTONS; i++) {
@@ -84,8 +89,10 @@ void ButtonController::begin() {
 }
 
 void ButtonController::init() {
-  if (CURRENT_MODE > DEBUG_MODE)
+   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ButtonController init");
+  if (CONTROL_BUTTON == DISABLED) return;
+ 
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttons[i].init();
   }
@@ -102,6 +109,5 @@ void ButtonController::operate() {
     }
   }
 }
-
 
 #endif

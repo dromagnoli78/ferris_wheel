@@ -51,16 +51,19 @@ public:
 };
 
 void ConsoleController::begin() {
+  if (CONTROL_CONSOLE == DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ConsoleController begin");
 }
 
 void ConsoleController::init() {
-    if (CURRENT_MODE > DEBUG_MODE)
+      if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("ConsoleController init");
+    if (CONTROL_CONSOLE == DISABLED) return;
 }
 
 void ConsoleController::operate() {
+  if (CONTROL_CONSOLE == DISABLED) return;
   isMuted = false;
   unsigned long time = millis();
   

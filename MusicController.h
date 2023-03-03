@@ -73,6 +73,7 @@ void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
 }
 
 void MusicController::init() {
+  if (CONTROL_MUSIC == DISABLED) return;
   currentTrack = 0;
   adjustVolume();
   

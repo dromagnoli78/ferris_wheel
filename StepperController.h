@@ -2,17 +2,74 @@
 #define StepperController_h
 
 #include "Constants.h"
-#include <Stepper.h>
-
 #define STEPPER_INCREMENT 1
+
+class MyStepper {
+private:
+  int line1;
+  int line2;
+  int line3;
+  int line4;
+  int phase = 0;
+
+public:
+  MyStepper(int iLine1, int iLine2, int iLine3, int iLine4) {
+    line1 = iLine1;
+    line2 = iLine2;
+    line3 = iLine3;
+    line4 = iLine4;
+    pinMode(line1, OUTPUT);
+    pinMode(line2, OUTPUT);
+    pinMode(line3, OUTPUT);
+    pinMode(line4, OUTPUT);
+  }
+  void doStep();
+  void stop();
+};
+
+void MyStepper::doStep() {
+  switch (phase) {
+    case 0:
+      digitalWrite(line1, HIGH);
+      digitalWrite(line2, HIGH);
+      digitalWrite(line3, LOW);
+      digitalWrite(line4, LOW);
+      break;
+    case 1:
+      digitalWrite(line1, LOW);
+      digitalWrite(line2, HIGH);
+      digitalWrite(line3, HIGH);
+      digitalWrite(line4, LOW);
+      break;
+    case 2:
+      digitalWrite(line1, LOW);
+      digitalWrite(line2, LOW);
+      digitalWrite(line3, HIGH);
+      digitalWrite(line4, HIGH);
+      break;
+    case 3:
+      digitalWrite(line1, HIGH);
+      digitalWrite(line2, LOW);
+      digitalWrite(line3, LOW);
+      digitalWrite(line4, HIGH);
+      break;
+  }
+  phase++;
+  phase %= 4;
+}
+
+void MyStepper::stop() {
+  digitalWrite(line1, LOW);
+  digitalWrite(line2, LOW);
+  digitalWrite(line3, LOW);
+  digitalWrite(line4, LOW);  
+}
 
 class StepperController {
 private:
-  int stepsPerRevolution;
-  int stSpeed;
   bool moveTriggered = false;
   bool isStopped = true;
-  Stepper stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
+  MyStepper stepper = MyStepper(STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   bool moveClockwise = true;
   int deltaTime;
   unsigned long lastTime;
@@ -20,8 +77,8 @@ public:
   void init();
   void begin();
   void operate();
-  StepperController(int iStepsPerRevolution, int iStSpeed, int iDeltaTime)
-    : stepsPerRevolution(iStepsPerRevolution), stSpeed(iStSpeed), deltaTime(iDeltaTime) {
+  StepperController(int iDeltaTime)
+    : deltaTime(iDeltaTime) {
     lastTime = millis();
     //stepper = Stepper(stepsPerRevolution, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   };
@@ -30,24 +87,21 @@ public:
 
 bool StepperController::triggerMovement() {
   moveTriggered = true;
-   if (CURRENT_MODE > DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("StepperController triggered");
   return !isStopped;
 }
 
 void StepperController::begin() {
+  if (CONTROL_STEPPER == DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("StepperController begin");
-  //stepper = Stepper(STEPS_PER_REVOLUTION, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
-  //stepper->setRpm(STEPPER_RPM);
-  stepper.setSpeed(stSpeed);
 }
 
 void StepperController::init() {
-    if (CURRENT_MODE > DEBUG_MODE)
+  if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("StepperController init");
-  //stepper->setSpeed(stSpeed);
-  //stepper->step(100);
+ 
 }
 
 void StepperController::operate() {
@@ -59,22 +113,17 @@ void StepperController::operate() {
       moveTriggered = false;
       if (isStopped) {
         isStopped = false;
-        stepper.setSpeed(stSpeed);
       } else {
         isStopped = true;
 
         // Power off all the 4 phases
-        digitalWrite(STEPPER_IN_1, LOW);
-        digitalWrite(STEPPER_IN_2, LOW);
-        digitalWrite(STEPPER_IN_3, LOW);
-        digitalWrite(STEPPER_IN_4, LOW);
+        stepper.stop();
 
         return;
       }
     }
     if (!isStopped) {
-      stepper.step(STEPPER_INCREMENT);
-      //stepper.move(1);
+      stepper.doStep();
     }
   }
 }

@@ -80,6 +80,7 @@ public:
 };
 
 void DisplayController::begin() {
+  if (CONTROL_DISPLAY == DISABLED) return;
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
   }
@@ -87,6 +88,9 @@ void DisplayController::begin() {
 }
 
 void DisplayController::init() {
+   if (CURRENT_MODE > DEBUG_MODE)
+    Serial.println("DisplayController init");
+  if (CONTROL_DISPLAY == DISABLED) return;
   display.clearDisplay();
   display.setRotation(2);
   display.setTextColor(SSD1306_WHITE);

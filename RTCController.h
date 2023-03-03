@@ -18,6 +18,7 @@ public:
 };
 
 void RTCController::begin() {
+  if (CONTROL_RTC == DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("LedController begin");
   if (!rtc.begin()) {
