@@ -13,18 +13,18 @@
 #define FRAMES_PER_SECOND 45
 #define LIGHT_SENSOR_PIN 99999
 
-
-
-#define DO_NOTHING -1
+#define DO_NOTHING 99
+#define REQUEST_OFF 88
+#define REQUEST_ON 77
 #define PATTERN_SINGLE 0
-#define PATTERN_WHEEL 1
-#define PATTERN_GROWING 2
-#define PATTERN_BOUNCING 3
-#define PATTERN_WHIPE 5
-#define PATTERN_FULL 6
-#define PATTERN_RAINBOW 7
-#define PATTERN_THEATHER 8
-#define PATTERN_RGB_LOOP 9
+#define PATTERN_WHEEL PATTERN_SINGLE + 1
+#define PATTERN_GROWING PATTERN_WHEEL + 1
+#define PATTERN_BOUNCING PATTERN_GROWING +1 
+//#define PATTERN_WHIPE 5
+//#define PATTERN_FULL 6
+#define PATTERN_RAINBOW PATTERN_BOUNCING +1
+//#define PATTERN_THEATHER 8
+#define PATTERN_RGB_LOOP PATTERN_RAINBOW +1
 #define PATTERN_SLEEPING 100
 #define PATTERN_SHUTDOWN 101
 
@@ -51,16 +51,17 @@ private:
   uint32_t colorPattern[COLOR_PATTERNS];
   uint32_t currentColorPattern = 0;
 
-  uint8_t previousPattern = 0;
-  uint8_t pattern = 0;
-  uint8_t ledInSequence = 0;
-  uint8_t rgbSequence = 0;
+  int previousPattern = 0;
+  int pattern = 0;
+  int ledInSequence = 0;
+  int rgbSequence = 0;
 
   bool sequenceUp = true;
   bool sequenceTriggered = false;
   bool fadeIn = true;
   bool shrink = false;
-  bool isOff = false;
+  bool off = false;
+  bool requestOff = false;
   bool sleepMode = false;
 
   int rgb_intensity = 0;
@@ -86,10 +87,13 @@ public:
   void growingLedSequence();
   void rgbLoop();
   void rainbow();
+  void turnItOff();
+  void turnItOn();
   void sleeping(bool isSleeping);
   void sleepingSequence();
   void shutdownSequence();
   void resetAllLeds();
+  bool isOff() {return off;}
   byte getMin(byte red, byte green, byte blue);
   void setAll(byte red, byte green, byte blue) {
     for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
@@ -111,9 +115,10 @@ public:
 //single led to the wheel perimeter and make it run on the perimeter for a while
 
 void LedController::nextSequence() {
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("LedController nextSequence");
+  dbg("LedController nextSequence");
   sequenceTriggered = true;
+  off = false;
+  requestOff = false;
   ledInSequence = 0;
   fadeIn = true;
   sequenceUp = true;
@@ -131,31 +136,28 @@ void LedController::sleeping(bool isSleeping) {
     pattern = PATTERN_SLEEPING;
     rgb_intensity = MAX_VALUE_LIGHT_FOR_SLEEP;
     timeSleepHasStarted = millis();
-    if (CURRENT_MODE > DEBUG_MODE) {
-      Serial.print("LedController going to sleep with sleepTime:");
-      Serial.println(timeSleepHasStarted);
-    }
+    dbg("LedController going to sleep with sleepTime:", timeSleepHasStarted);
+    
     fadeIn = false;
   }
 }
 
 void LedController::begin() {
-  if (CONTROL_LIGHTS == DISABLED) return;
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("LedController begin");
-
+  if (CONTROL_LIGHTS == CTL_DISABLED) return;
+  dbg("LedController begin");
+  pinMode(ENABLE_POWER_LED, OUTPUT);
   delay(SETUP_DELAY);  // 3 second delay for recovery
 
-  strip.setBrightness(BRIGHTNESS);
+  strip.setBrightness(LED_BRIGHTNESS);
   resetAllLeds();
   strip.show();
 }
 
 void LedController::init() {
-  
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("LedController init");
-  if (CONTROL_LIGHTS == DISABLED) return;
+  if (CONTROL_LIGHTS == CTL_DISABLED) return;
+  dbg("LedController init");
+  off = true;
+  digitalWrite(ENABLE_POWER_LED, HIGH);
   unsigned long time = millis();
   timeLastSequenceUpdate = time;
   timeLastSleepCheck = time;
@@ -169,17 +171,14 @@ void LedController::init() {
 }
 
 void LedController::operate() {
-  if (CONTROL_LIGHTS == DISABLED) return;
+  if (CONTROL_LIGHTS == CTL_DISABLED) return;
   unsigned long time = millis();
   if (time - timeLastCheckOnLedTriggers > deltaTimeOnLedChange) {
     if (sequenceTriggered && !sleepMode) {
       pattern++;
       timeLastCheckOnLedTriggers = time;
       pattern = pattern % SEQUENCE_PATTERNS;
-      if (CURRENT_MODE > DEBUG_MODE) {
-        Serial.print("LedController changing sequence:");
-        Serial.println(pattern);
-      }
+      dbg("LedController changing sequence:", (unsigned long) pattern);
       sequenceTriggered = false;
     }
   }
@@ -194,9 +193,29 @@ void LedController::operate() {
   ledSequence();
 }
 
+void LedController::turnItOff() {
+    requestOff = true;
+    previousPattern = pattern;
+    pattern = REQUEST_OFF;
+}
+
+void LedController::turnItOn() {
+    requestOff = false;
+    pattern = previousPattern;
+}
+
 void LedController::ledSequence() {
 
   switch (pattern) {
+    case REQUEST_OFF:
+      setAll(0,0,0);
+      off = true;
+      requestOff = false;
+      break;
+    case REQUEST_ON:
+      off = false;
+      requestOff = false;
+      break;
     case DO_NOTHING:
       break;
     case PATTERN_SINGLE:

@@ -18,17 +18,17 @@ public:
 };
 
 void RTCController::begin() {
-  if (CONTROL_RTC == DISABLED) return;
+  if (CONTROL_RTC == CTL_DISABLED) return;
   if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("LedController begin");
+    dbg("RTCController begin");
   if (!rtc.begin()) {
-    Serial.println("Couldn't find RTC");
+    dbg("Couldn't find RTC");
     Serial.flush();
   }
 
   if (!rtc.isrunning()) {
     if (CURRENT_MODE > DEBUG_MODE)
-      Serial.println("RTC is NOT running, let's set the time!");
+      dbg("RTC is NOT running, let's set the time!");
     // When time needs to be set on a new device, or after a power loss, the
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));

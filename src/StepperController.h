@@ -72,6 +72,7 @@ private:
   MyStepper stepper = MyStepper(STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   bool moveClockwise = true;
   int deltaTime;
+  u_int8_t currentSpeed = 2;
   unsigned long lastTime;
 public:
   void init();
@@ -80,32 +81,62 @@ public:
   StepperController(int iDeltaTime)
     : deltaTime(iDeltaTime) {
     lastTime = millis();
-    //stepper = Stepper(stepsPerRevolution, STEPPER_IN_1, STEPPER_IN_2, STEPPER_IN_3, STEPPER_IN_4);
   };
   bool triggerMovement();
+  bool isItStopped(){return isStopped;};
+  void speedChange(u_char c);
 };
 
 bool StepperController::triggerMovement() {
   moveTriggered = true;
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("StepperController triggered");
+  dbg("StepperController triggered");
   return !isStopped;
 }
 
+void StepperController::speedChange(u_char c) {
+  switch (c) {
+    case 'U':
+      currentSpeed++;
+      if (currentSpeed > 3) {
+        currentSpeed--;
+      } else {
+        dbg("Stepper speed-up");
+      }
+      break;
+    case 'D':
+      currentSpeed--;
+      if (currentSpeed < 1) {
+        currentSpeed++;
+      } else {
+        dbg("Stepper speed-down");
+      }
+      break;
+  }
+  switch (currentSpeed){
+    case 1:
+      deltaTime = STEPPER_SPEED_SLOW;
+      break;
+    case 2:
+      deltaTime = STEPPER_SPEED_MED;
+      break;
+    case 3:
+      deltaTime = STEPPER_SPEED_FAST;
+      break;
+  }
+}
+
 void StepperController::begin() {
-  if (CONTROL_STEPPER == DISABLED) return;
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("StepperController begin");
+  if (CONTROL_STEPPER == CTL_DISABLED) return;
+  dbg("StepperController begin");
 }
 
 void StepperController::init() {
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("StepperController init");
+  dbg("StepperController init");
  
 }
 
 void StepperController::operate() {
-  if (CONTROL_STEPPER == DISABLED) return;
+  if (CONTROL_STEPPER == CTL_DISABLED) return;
   unsigned long time = millis();
   if ((time - this->lastTime) > deltaTime) {
     this->lastTime = millis();

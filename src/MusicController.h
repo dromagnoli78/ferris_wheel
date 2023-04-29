@@ -14,19 +14,20 @@ private:
   bool playing = false;
   bool muted = false;
   bool canPlay = false;
-  bool volumeTriggered = false;
-  bool nextSongRequested = false;
+  bool muteTriggered = false;
+  int songRequestIncrement = 0;
   bool songTriggered = false;
   bool sleepMode = false;
 
   int lastTrack;
-  int lastFolder = 0;
+  int numFolders = 0;
   int currentTrack = 0;
   int sleepTrack = 0;
-  int folder = 0;
+  int analogVolume;
   int8_t volume;
   int8_t previousVolume;
   int8_t maxVolume = 30;
+  unsigned long lastOperateCheckTime;
   unsigned long lastVolumeCheckTime;
   unsigned long lastPlayCheckTime;
   unsigned long lastDebugTime = 0;
@@ -36,50 +37,61 @@ private:
   int sleepingSteps = 0;
   DFRobotDFPlayerMini* mp3Player;
   DisplayController* displayController;
+  SongsController* songsController;
 
 public:
   MusicController(DisplayController* pDisplayController){
     displayController = pDisplayController;
+    songsController = displayController->songsController;
   };
   void init();
   void begin(DFRobotDFPlayerMini* pMp3Player);
   void operate();
   void adjustVolume();
-  int getTrackNumber(){
-    return folder*1000 + currentTrack;
-  };
-  
-  
-  int nextSong(){
-    if (!sleepMode) {
-      nextSongRequested = true;
-      canPlay = true;
-      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController Requesting Next Song");
-      return getTrackNumber();
-    }
-
-  };
+  int getAnalogVolume() {return analogVolume;}
+  int computeSkip(u_char c);
+  int computeNextFolder();
+  int computePreviousFolder();
+  void requestNewSong(int step);
   void sleeping(bool isSleeping);
-  bool triggerMute();
+  bool requestMute();
+  void stop();
   bool isPlaying(){return playing;};
   bool isMuted(){return muted;};
   void printDetail(uint8_t type, int value);
 };
 
-void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
 
-  if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController begin");
+
+void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
+  dbg("MusicController begin");
   mp3Player = pMp3Player;
 }
 
+void MusicController::requestNewSong(int step){
+    if (!sleepMode) {
+      songRequestIncrement = step;
+      canPlay = true;
+    }
+    dbg("MusicController Requesting Song Change:", step);
+  }
+
+void MusicController::stop() {
+  dbg("MusicController Stopping");
+  mp3Player->stop();
+  playing = false;
+  songRequestIncrement = 0;
+}
+
 void MusicController::init() {
-  if (CONTROL_MUSIC == DISABLED) return;
+  if (CONTROL_MUSIC == CTL_DISABLED) return;
   currentTrack = 0;
   adjustVolume();
   
   previousVolume = volume;
   unsigned long time = millis();
   lastTrack = mp3Player->readFileCounts();
+  numFolders = songsController->getNumFolders();
   sleepTrack = lastTrack;
 
   mp3Player->EQ(DFPLAYER_EQ_CLASSIC);
@@ -93,27 +105,23 @@ void MusicController::init() {
 }
 
 void MusicController::adjustVolume() {
-  int v = analogRead(VOLUME_PIN);
   unsigned long time = millis();
   if (sleepMode && (time - sleepLastCheck > sleepingStepInterval)){
     // Slowly reducing the volume, based on the sleep shutdown
-    
+    analogVolume = 0;
     sleepLastCheck = time;
     volume--;
     if (volume < 0) {
       volume =0;
     }
-    if (CURRENT_MODE > DEBUG_MODE){
-     Serial.print("MusicController Reducing maxVolume for sleep. Vol:");
-     Serial.println(volume);
-    }
+    dbg("MusicController Reducing maxVolume for sleep. Vol:", (unsigned long) volume);
     if (volume == 0) {
       mp3Player->stop();
       playing == false;
     }
     
   } else {
-    volume = map(v, 0, 4095, 0, maxVolume);
+    volume = map(analogVolume, 0, 4095, 0, maxVolume);
   }
  
   //Set volume value. From 0 to 30
@@ -131,29 +139,32 @@ void MusicController::adjustVolume() {
 }
 
 void MusicController::operate() {
-  if (CONTROL_MUSIC == DISABLED) return;
+  if (CONTROL_MUSIC == CTL_DISABLED) return;
   unsigned long time = millis();
-
-  // leave if muted
-  if (volumeTriggered) {
+  if ((time - lastOperateCheckTime) < DELTA_MUSIC_TIME)
+    return;
+  analogVolume = analogRead(VOLUME_PIN);
+  if (muteTriggered) {
     if (!muted) {
-      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController Muting");
+      dbg("MusicController Muting");
       mp3Player->volume(0);
       muted = true;
     } else {
-      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController Un-Muting ");
+      dbg("MusicController Un-Muting ");
       adjustVolume();
       muted = false;
     }
-    volumeTriggered = false;
+    muteTriggered = false;
   }
+
+  // leave if muted
   if (muted) {
     return;
   }
 
   // volume control
-  int deltaTime = sleepMode ? sleepingStepInterval :  DELTA_TIME*2;
-  if ((time - lastVolumeCheckTime) > deltaTime && !nextSongRequested) {
+  int deltaTime = sleepMode ? sleepingStepInterval :  DELTA_VOLUME_TIME;
+  if ((time - lastVolumeCheckTime) > deltaTime && songRequestIncrement==0) {
     adjustVolume();
     lastVolumeCheckTime = time;
   }
@@ -174,11 +185,19 @@ void MusicController::operate() {
     }
 
     bool play = true;
-    if (canPlay && (!playing || nextSongRequested)) {
-      if (CURRENT_MODE > DEBUG_MODE) Serial.println("MusicController playing next");
+    if (canPlay && (!playing || songRequestIncrement != 0)) {
       if (!sleepMode) {
-        displayController->nextSong(currentTrack);
-        currentTrack++;
+        if (songRequestIncrement != 0)
+          ("MusicController playing next");
+        currentTrack+=songRequestIncrement;
+        if (currentTrack <= 0) {
+          currentTrack = lastTrack;
+        } else if (currentTrack > lastTrack) {
+          currentTrack = 1;
+        }
+        if (songRequestIncrement != 0) {
+          displayController->requestNewSong(currentTrack);
+        }
       } else {
         currentTrack = sleepTrack;
         if (time - sleepStartTime < DELAY_SOFT_START_SLEEP) {
@@ -186,25 +205,20 @@ void MusicController::operate() {
         }
       }
       
-      if (CURRENT_MODE > DEBUG_MODE) {
-        Serial.print("MusicController: song number:");
-        Serial.println(currentTrack);
+      if (songRequestIncrement != 0||sleepMode){
+        dbg("MusicController is going to play song number:", currentTrack);
+        if (play) mp3Player->play(currentTrack);
+        playing = play;
       }
-      if (play) mp3Player->play(currentTrack);
-
-      if (CURRENT_MODE > DEBUG_MODE) {
-        Serial.println("MusicController is playing");
-      }
-      currentTrack = currentTrack % lastTrack;
-      playing = play;
-      nextSongRequested = false;
+      songRequestIncrement = 0;
     }
     lastPlayCheckTime = time;
+    lastOperateCheckTime = time;
   }
 }
 
-bool MusicController::triggerMute() {
-  volumeTriggered = true;
+bool MusicController::requestMute() {
+  muteTriggered = true;
   return muted;
 }
 
@@ -223,15 +237,38 @@ void MusicController::sleeping(bool sleeping){
       sleepingSteps = 1;
     }
     sleepingStepInterval = SLEEP_SHUTDOWN / sleepingSteps;
-    if (CURRENT_MODE > DEBUG_MODE) {
-      Serial.print("DisplayController: SleepMode triggered with sleepingStepInterval:");
-      Serial.println(sleepingStepInterval);
-    }
-    mp3Player->stop();
+    dbg("DisplayController: SleepMode triggered with sleepingStepInterval:", sleepingStepInterval);
+    if (CONTROL_MUSIC == ENABLED)
+      mp3Player->stop();
   }
 
 }
 
+int MusicController::computeSkip(u_char c){
+  int skip;
+  switch (c) {
+    case 'N':
+      dbg("MusicController ComputeSkip: Returning +1");
+      skip = 1;
+      break;
+    case 'P':
+      dbg("MusicController ComputeSkip: Returning -1");
+      skip  = -1;
+      break;
+    case 'U':
+      dbg("MusicController ComputeSkip: Returning +1D");
+      skip = songsController->computeNextFolder(currentTrack);
+      break;
+    case 'D':
+      dbg("MusicController ComputeSkip: Returning -1D");
+      return computePreviousFolder();
+  }
+  return skip;
+}
+
+int MusicController::computePreviousFolder() {
+  return 0;
+}
 
 void MusicController::printDetail(uint8_t type, int value){
   switch (type) {

@@ -29,34 +29,65 @@
 
 long t = 0;
 bool debug = true;
-int8_t mode = START_MODE;
+int mode = START_MODE;
 //SoftwareSerial mySerial(MP3_RX_PIN, MP3_TX_PIN);
 HardwareSerial mySerial(1);
 DFRobotDFPlayerMini mp3Player;
 
 ButtonController buttonsController = ButtonController();
 DisplayController displayController = DisplayController();
-ConsoleLightsController consoleLightsController = ConsoleLightsController();
+
 LedController ledController = LedController();
-StepperController stepperController = StepperController(STEPPER_DELTA_TIME);
+StepperController stepperController = StepperController(STEPPER_INIT_SPEED);
 MusicController musicController = MusicController(&displayController);
+ConsoleLightsController consoleLightsController = ConsoleLightsController(&musicController);
 
 ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
 
+
+/** void operate2(void* pvParameters) {
+  int line1=25;
+  int line2=33;
+  int line3=32;
+  int line4=13;
+  while (true) {
+  delay(100);
+      digitalWrite(line1, HIGH);
+      digitalWrite(line2, HIGH);
+      digitalWrite(line3, LOW);
+      digitalWrite(line4, LOW);
+  delay(100);
+      digitalWrite(line1, LOW);
+      digitalWrite(line2, HIGH);
+      digitalWrite(line3, HIGH);
+      digitalWrite(line4, LOW);
+delay(100);
+      digitalWrite(line1, LOW);
+      digitalWrite(line2, LOW);
+      digitalWrite(line3, HIGH);
+      digitalWrite(line4, HIGH);
+delay(100);
+      digitalWrite(line1, HIGH);
+      digitalWrite(line2, LOW);
+      digitalWrite(line3, LOW);
+      digitalWrite(line4, HIGH);
+      }
+}
+*/
 
 void setup() {
   if (CURRENT_MODE > DEBUG_MODE) {
     Serial.begin(115200);
     Serial.println("Setting up");
   }
-  
+  dbg("Charging capacitors");
+
   //mySerial.begin(9600);
   if (CONTROL_MUSIC == ENABLED)
     mySerial.begin(9600, SERIAL_8N1,MP3_RX_PIN, MP3_TX_PIN);
 
   Serial.println();
   Serial.println(F("Initializing DFPlayer ... (May take 3~5 seconds)"));
-
   if (CONTROL_MUSIC == ENABLED && !mp3Player.begin(mySerial)) {  //Use softwareSerial to communicate with mp3.
     Serial.println(F("Unable to begin:"));
     Serial.println(F("1.Please recheck the connection!"));
@@ -73,26 +104,8 @@ void setup() {
   displayController.begin();
   consoleLightsController.begin();
   consoleController.begin();
-}
+  //xTaskCreatePinnedToCore(operate2, "Operate", 10000,NULL, 1, &Task2, 0);
 
-void loop() {
-  switch (mode) {
-    case START_MODE:
-      initialize();
-      break;
-    /*    case TEST_MODE:
-      testmode();
-      break;
-    case DIAGNOSE_MODE:
-      diagnoseMode();
-      break;
-*/
-    case WORKING_MODE:
-      workingmode();
-      break;
-    case SLEEPING_MODE:
-      break;
-  }
 }
 
 void initialize() {
@@ -133,12 +146,36 @@ void workingmode() {
   consoleLightsController.operate();
 
   if (consoleController.isReadyForSleep()) {
-    if (CURRENT_MODE > DEBUG_MODE)
-      Serial.println("Everything is off! Sleeping");
-      delay(1000);
-      esp_deep_sleep_start();
-      mode = SLEEPING_MODE;
-      loop();
+    mp3Player.stop();
+    mp3Player.sleep();
+    dbg("Everything is off! Sleeping");
+    delay(1000);
+    esp_deep_sleep_start();
+    mode = SLEEPING_MODE;
+    loop();
   }
 
 }
+
+void loop() {
+  switch (mode) {
+    case START_MODE:
+      initialize();
+      break;
+    /*    case TEST_MODE:
+      testmode();
+      break;
+    case DIAGNOSE_MODE:
+      diagnoseMode();
+      break;
+*/
+    case WORKING_MODE:
+      workingmode();
+      break;
+    case SLEEPING_MODE:
+      break;
+  }
+}
+
+
+

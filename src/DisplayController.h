@@ -7,7 +7,7 @@
 #include <Adafruit_SSD1306.h>
 #include "RTCController.h"
 #include "Images.h"
-#include "Songs.h"
+#include "SongsController.h"
 #include "CherryCreamSoda_24.h"
 #include "CherryCreamSoda_20.h"
 
@@ -55,7 +55,7 @@ private:
   bool preSleep = false;  // Pre-sleep phase. Needed for different message
 
   // Objects
-  SongGetter songGetter;  // Object used to get song titles.
+  
   RTCController rtc;
 
 public:
@@ -69,28 +69,28 @@ public:
   void displayPreSleep();
   void displaySong(int index);
   void displayNone();
-  void nextSong(int songIndex);
+  void requestNewSong(int songIndex);
   void sleeping(bool isSleeping);
+  SongsController* songsController;  // Object used to get song titles.
 
   DisplayController() {
     timeLastDisplayUpdate = millis();
-    songGetter = SongGetter();
+    songsController = new SongsController();
     rtc = RTCController();
   };
 };
 
 void DisplayController::begin() {
-  if (CONTROL_DISPLAY == DISABLED) return;
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-  }
-  rtc.begin();
+  dbg("DisplayController begin");
+  if (CONTROL_RTC == ENABLED) rtc.begin();
+  if (CONTROL_DISPLAY == CTL_DISABLED) return;
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) 
+      Serial.println(F("SSD1306 allocation failed"));
 }
 
 void DisplayController::init() {
-   if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("DisplayController init");
-  if (CONTROL_DISPLAY == DISABLED) return;
+  dbg("DisplayController init");
+  if (CONTROL_DISPLAY == CTL_DISABLED) return;
   display.clearDisplay();
   display.setRotation(2);
   display.setTextColor(SSD1306_WHITE);
@@ -101,7 +101,7 @@ void DisplayController::init() {
 }
 
 void DisplayController::operate() {
-  if (CONTROL_DISPLAY == DISABLED) return;
+  if (CONTROL_DISPLAY == CTL_DISABLED) return;
 
   unsigned long time = millis();
   if (CURRENT_MODE > DEBUG_MODE) {
@@ -138,17 +138,23 @@ void DisplayController::operate() {
 
 void DisplayController::displayTime() {
   unsigned long time = millis();
-  if (time - timeLastRTCUpdate > 1000) {
-    display.clearDisplay();
-    display.drawBitmap(96, 0, rtc.getHourImage(), 32, 32, SSD1306_WHITE);
-    display.drawBitmap(96, 0, rtc.getMinuteImage(), 32, 32, SSD1306_WHITE);
-    // Set special font for the clock
-    
-    display.setFont(&Cherry_Cream_Soda_Regular_20);
-    display.setCursor(0, 24);
-    display.println(rtc.getTimeString());
-    display.display();
-    timeLastRTCUpdate = time;
+  if (CONTROL_RTC == ENABLED) {
+    if (time - timeLastRTCUpdate > 1000) {
+      if (CONTROL_DISPLAY == ENABLED) {
+        display.clearDisplay();
+        display.drawBitmap(96, 0, rtc.getHourImage(), 32, 32, SSD1306_WHITE);
+        display.drawBitmap(96, 0, rtc.getMinuteImage(), 32, 32, SSD1306_WHITE);
+        // Set special font for the clock
+        
+        display.setFont(&Cherry_Cream_Soda_Regular_20);
+        display.setCursor(0, 24);
+        display.println(rtc.getTimeString());
+        display.display();
+      } else {
+        dbg(rtc.getTimeString());
+      }
+      timeLastRTCUpdate = time;
+    }
   }
 }
 
@@ -171,31 +177,34 @@ void DisplayController::displayHello() {
 }
 
 void DisplayController::displaySong(int index) {
+  bool doIt = CONTROL_DISPLAY == ENABLED;
   if (!isScrolling)
-    displayMessage(songGetter.getTrack(index), 1);
+    if (doIt) displayMessage(songsController->getTrack(index), 1);
   unsigned long time = millis();
   if (time - timeSongTitleBeingShown > DELAY_AFTER_SONG) {
     mode = TIME_MODE;
     isScrolling = false;
-    display.stopscroll();
+    if (doIt) display.stopscroll();
   }
 }
 
 void DisplayController::displayMessage(const char* message, int fontsize) {
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.setTextSize(fontsize);
-  display.setFont();
-  display.println(message);
-  display.display();
-  display.startscrollright(0x00, 0x0F);
-  isScrolling = true;
+  if (CONTROL_DISPLAY == ENABLED) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.setTextSize(fontsize);
+    display.setFont();
+    display.println(message);
+    display.display();
+    display.startscrollright(0x00, 0x0F);
+    isScrolling = true;
+  }
 }
 
-void DisplayController::nextSong(int index) {
-  if (CURRENT_MODE > DEBUG_MODE) Serial.println("DisplayController: Requested NextSong");
+void DisplayController::requestNewSong(int index) {
+  dbg("DisplayController: NextSong");
   mode = MUSIC_MODE;
-  songIndex = index;
+  songIndex = index-1;
   timeSongTitleBeingShown = millis();
   isScrolling = false;
 }
@@ -204,12 +213,15 @@ void DisplayController::nextSong(int index) {
 void DisplayController::displayPreSleep() {
   unsigned long time = millis();
   long deltaTime = time - timeSleepModeStarted;
+
   // Display buonaNotte once and then go to sleep mode
   if (preSleep && (deltaTime > 100 && deltaTime < 1000)) {
-    display.stopscroll();
-    display.clearDisplay();
-    display.drawBitmap(0, 0, buonaNotte, 128, 32, SSD1306_WHITE);
-    display.display();
+    if (CONTROL_DISPLAY == ENABLED) {
+      display.stopscroll();
+      display.clearDisplay();
+      display.drawBitmap(0, 0, buonaNotte, 128, 32, SSD1306_WHITE);
+      display.display();
+    }
     preSleep = false;
   }
 
@@ -223,36 +235,37 @@ void DisplayController::displayPreSleep() {
 void DisplayController::displaySleep() {
   unsigned long time = millis();
   // Sleep animation is made of different frames (phases)
+  bool doIt = CONTROL_DISPLAY == ENABLED;
   if (time - timeLastSleepFrame > deltaTimeForNextFrame) {
-    display.clearDisplay();
+    if (doIt) display.clearDisplay();
 
     switch (sleepFrame) {
       case 0:
-        display.drawBitmap(0, 0, sleepf1, 128, 32, SSD1306_WHITE);
+        if (doIt) display.drawBitmap(0, 0, sleepf1, 128, 32, SSD1306_WHITE);
         deltaTimeForNextFrame = 400;
         break;
       case 1:
-        display.drawBitmap(0, 0, sleepf2, 128, 32, SSD1306_WHITE);
+        if (doIt) display.drawBitmap(0, 0, sleepf2, 128, 32, SSD1306_WHITE);
         deltaTimeForNextFrame = 500;
         break;
       case 2:
-        display.drawBitmap(0, 0, sleepf3, 128, 32, SSD1306_WHITE);
+        if (doIt) display.drawBitmap(0, 0, sleepf3, 128, 32, SSD1306_WHITE);
         deltaTimeForNextFrame = 400;
         break;
       case 3:
-        display.drawBitmap(0, 0, sleepf4, 128, 32, SSD1306_WHITE);
+        if (doIt) display.drawBitmap(0, 0, sleepf4, 128, 32, SSD1306_WHITE);
         deltaTimeForNextFrame = 300;
         break;
       case 4:
       default:
         deltaTimeForNextFrame = 400;
-        display.drawBitmap(0, 0, sleepf5, 128, 32, SSD1306_WHITE);
+        if (doIt) display.drawBitmap(0, 0, sleepf5, 128, 32, SSD1306_WHITE);
         break;
     }
 
     sleepFrame++;
     sleepFrame %= SLEEP_FRAMES;
-    display.display();
+    if (doIt) display.display();
     timeLastSleepFrame = time;
 
     if (time - timeSleepModeStarted > SLEEP_SHUTDOWN - DELAY_SOFT_START_SLEEP) {
@@ -262,8 +275,7 @@ void DisplayController::displaySleep() {
 }
 
 void DisplayController::sleeping(bool sleeping) {
-  if (CURRENT_MODE > DEBUG_MODE)
-    Serial.println("DisplayController: SleepMode triggered");
+  dbg("DisplayController: SleepMode triggered");
   if (sleeping) {
     lastMode = mode;
     mode = PRE_SLEEP_MODE;
@@ -274,8 +286,5 @@ void DisplayController::sleeping(bool sleeping) {
     mode = lastMode;
   }
 }
-
-
-
 
 #endif
