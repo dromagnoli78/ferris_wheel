@@ -13,18 +13,6 @@ volatile bool up = LOW;
 //#define NUM_BUTTONS 2
 #define NUM_BUTTONS 10
 
-#define SETTINGS_INDEX 9
-#define SLEEP_INDEX 8
-#define MUSIC_INDEX 7
-#define MUTE_INDEX 6
-#define STEPPER_INDEX 5
-#define LIGHT_INDEX 4
-#define LEFT_INDEX 3
-#define DOWN_INDEX 2
-#define RIGHT_INDEX 1
-#define UP_INDEX 0
-
-
 /**
 Class holding all the buttons and controlling them
 */

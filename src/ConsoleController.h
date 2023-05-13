@@ -89,6 +89,30 @@ void ConsoleController::operate() {
     }
    }
 
+  // Next is the settings
+  ButtonInfo* settings = buttonsController->settings();
+  if (settings->isClicked()) {
+    dbg("ConsoleController: Setting is clicked");
+    settings->reset();
+    u_int8_t settings = consoleLightsController->getSettings();
+    u_int8_t ledSetting;
+    for (u_int8_t i = 1; i < LED_MUSIC - LED_LIGHTS + 1; i++) {
+        // Check if the current index is on
+        ledSetting = settings + i;
+        if (ledSetting > LED_MUSIC) {
+          ledSetting = LED_LIGHTS;
+        }
+        if (consoleLightsController->isItOn(ledSetting)) {
+          break;
+        } 
+    }
+    if (consoleLightsController->isItOn(ledSetting)) {
+      consoleLightsController->setSettings(ledSetting);
+    }
+    
+    
+  }
+
   ButtonInfo* right = buttonsController->right();
   if (!isSleeping && right->isClicked()) {
     u_int8_t settings = consoleLightsController->getSettings();
@@ -100,11 +124,6 @@ void ConsoleController::operate() {
           musicController->requestNewSong(skip);
           consoleLightsController->music(true);
         }
-        break;
-      case LED_STEPPER:
-        dbg("ConsoleController: Stepper+");
-        stepperController->speedChange('U');
-        consoleLightsController->stepper(!stepperController->isItStopped());
         break;
       case LED_LIGHTS:
         dbg("ConsoleController: NextSequence");
@@ -127,12 +146,6 @@ void ConsoleController::operate() {
           consoleLightsController->music(true);
         }
         break;
-      case LED_STEPPER:
-        dbg("ConsoleController: Stepper-");
-        stepperController->speedChange('D');
-        consoleLightsController->stepper(!stepperController->isItStopped());
-        break;
-      
     }
     left->reset();
   }
@@ -149,9 +162,37 @@ void ConsoleController::operate() {
           consoleLightsController->music(true);
         }
         break;
+      case LED_STEPPER:
+        dbg("ConsoleController: Stepper+");
+        stepperController->speedChange('U');
+        consoleLightsController->stepper(!stepperController->isItStopped());
+        break;
+      case LED_LIGHTS:
+        dbg("ConsoleController: Lights+");
+        ledController->speedChange('U');
+        break;
     }
     up->reset();
   }
+
+  ButtonInfo* down = buttonsController->down();
+  if (!isSleeping && down->isClicked()) {
+    u_int8_t settings = consoleLightsController->getSettings();
+    switch (settings) {
+     case LED_STEPPER:
+        dbg("ConsoleController: Stepper-");
+        stepperController->speedChange('D');
+        consoleLightsController->stepper(!stepperController->isItStopped());
+        break;
+     case LED_LIGHTS:
+        dbg("ConsoleController: Lights-");
+        ledController->speedChange('D');
+        break;
+
+    }
+    down->reset();
+  }
+
 
   ButtonInfo* music = buttonsController->music();
   if (!isSleeping && music->isClicked()) {
@@ -161,13 +202,13 @@ void ConsoleController::operate() {
     if (!isMuted){
       if (!isPlaying) {
         dbg("ConsoleController: Request New Song");
-        musicController->requestNewSong(1);
+        musicController->unpause();
         consoleLightsController->music(true);
         doAction = false;
       } 
     }
     if (isPlaying && doAction) {
-      musicController->stop();
+      musicController->pause();
       consoleLightsController->music(false);
     }
     music->reset();
@@ -197,7 +238,7 @@ void ConsoleController::operate() {
     else
       ledController->turnItOff();
     lights->reset();
-    consoleLightsController->lights(!isOff);
+    consoleLightsController->lights(isOff);
   }
 
   if (triggerSleeping) {
@@ -207,6 +248,9 @@ void ConsoleController::operate() {
     consoleLightsController->sleeping(isSleeping);
     ledController->sleeping(isSleeping);
     if (isSleeping) {
+      if (!stepperController->isItStopped()) {
+        stepperController->triggerMovement();
+      }
       timeSleepingHasStarted = time;
       dbg("ConsoleController Sleeping time is:", timeSleepingHasStarted);
     }  

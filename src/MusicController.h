@@ -12,6 +12,7 @@ class MusicController {
 private:
   bool needUpdate;
   bool playing = false;
+  boolean paused = false;
   bool muted = false;
   bool canPlay = false;
   bool muteTriggered = false;
@@ -56,6 +57,8 @@ public:
   void sleeping(bool isSleeping);
   bool requestMute();
   void stop();
+  void pause();
+  void unpause();
   bool isPlaying(){return playing;};
   bool isMuted(){return muted;};
   void printDetail(uint8_t type, int value);
@@ -81,6 +84,25 @@ void MusicController::stop() {
   mp3Player->stop();
   playing = false;
   songRequestIncrement = 0;
+}
+
+void MusicController::pause() {
+  dbg("MusicController Pausing");
+  mp3Player->pause();
+  playing = false;
+  paused = true;
+  songRequestIncrement = 0;
+}
+
+void MusicController::unpause() {
+  dbg("MusicController Unpausing");
+  if (paused) {
+    mp3Player->start();
+    paused = false;
+    playing = true;
+    } else {
+      requestNewSong(1);
+    }
 }
 
 void MusicController::init() {
@@ -181,6 +203,7 @@ void MusicController::operate() {
       // Did it stop playing?
       if (readType == DFPlayerPlayFinished) {
         playing = false;
+        songRequestIncrement = 1;
       }
     }
 

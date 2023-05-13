@@ -5,12 +5,13 @@
 #include <Adafruit_NeoPixel.h>
 
 #define LED_VOLUME 6
-#define LED_MUSIC 5
-#define LED_MUTE 4
+#define LED_MUTE 5
+#define LED_MUSIC 4
 #define LED_STEPPER 3
 #define LED_LIGHTS 2
 #define LED_SLEEP 1
 #define LED_SETTINGS 0
+
 //#define LED_EYE_1 6
 //#define LED_EYE_2 7
 
@@ -46,10 +47,18 @@ public:
   uint8_t getSettings() {
     return settingsLed;
   }
+  
+  void setSettings(uint8_t settings) {
+    settingsLed = settings;
+  }
 
   void turnOff(int ledPosition) {
     if (CONTROL_CONSOLE_LIGHTS == CTL_DISABLED) return;
     leds[ledPosition] = false;
+  };
+
+  bool isItOn(int ledPosition) {
+    return leds[ledPosition];
   };
 
   /** 

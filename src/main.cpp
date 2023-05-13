@@ -80,7 +80,7 @@ void setup() {
     Serial.begin(115200);
     Serial.println("Setting up");
   }
-  dbg("Charging capacitors");
+  delay(2000);
 
   //mySerial.begin(9600);
   if (CONTROL_MUSIC == ENABLED)
