@@ -29,10 +29,8 @@ public:
     buttons[MUTE_INDEX] = ButtonInfo(BUTTON_MUTE, 'm', false);
     buttons[STEPPER_INDEX] = ButtonInfo(BUTTON_STEPPER, 'P', false);
     buttons[LIGHT_INDEX] = ButtonInfo(BUTTON_LED_SEQUENCE, 'Q', false);
-    //buttons[4] = ButtonInfo(BUTTON_SLEEPING, 'S');
-
+    
     // Control buttons
-    //    buttons[5] = ButtonInfo(BUTTON_SETTINGS, 'T');
     buttons[LEFT_INDEX] = ButtonInfo(BUTTON_ARROW_LEFT, 'l', false);
     buttons[RIGHT_INDEX] = ButtonInfo(BUTTON_ARROW_RIGHT, 'r', false);
     buttons[UP_INDEX] = ButtonInfo(BUTTON_ARROW_UP, 'u', false);

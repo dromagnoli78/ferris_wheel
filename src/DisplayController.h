@@ -29,6 +29,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define SLEEP_MODE 3
 #define EMPTY_MODE 4
 #define HELLO_MODE 5
+#define FUNCTION_MODE 6
 
 #define SLEEP_FRAMES 5
 class DisplayController {
@@ -38,7 +39,7 @@ private:
   unsigned long timeOfLastDebug = 0;
   unsigned long timeLastDisplayUpdate;
   unsigned long timeLastSleepFrame = 0;       // Timer for sleepFramesCheck
-  unsigned long timeSongTitleBeingShown = 0;  // Timer for song title being shown initially (used to switch to clock after a while)
+  unsigned long timeMessageBeingShown = 0;  // Timer for song title being shown initially (used to switch to clock after a while)
   unsigned long timeSleepModeStarted = 0;     // When sleep Mode started
   unsigned long timeLastRTCUpdate = 0;
   unsigned long timeOfHello=0;
@@ -52,6 +53,7 @@ private:
   int songIndex;       // Index of the song currently playing
   int sleepFrame = 0;  // Sleep animation is composed of different frames
   bool isScrolling = false;
+  const char * text;
   bool preSleep = false;  // Pre-sleep phase. Needed for different message
 
   // Objects
@@ -62,20 +64,23 @@ public:
   void init();
   void begin();
   void operate();
-  void displayMessage(const char*, int fontsize);
+  void displayMessage(const char*, int fontsize, bool scroll);
   void displayHello();
   void displayTime();
   void displaySleep();
   void displayPreSleep();
   void displaySong(int index);
+  void displayText(const char* text, int delay, bool scroll);
   void displayNone();
+  void sendMessage(const char* text);
   void requestNewSong(int songIndex);
   void sleeping(bool isSleeping);
   SongsController* songsController;  // Object used to get song titles.
-
-  DisplayController() {
+  ModeController* modeController;
+  DisplayController(ModeController* pModeController) {
     timeLastDisplayUpdate = millis();
     songsController = new SongsController();
+    modeController = pModeController;
     rtc = RTCController();
   };
 };
@@ -129,6 +134,9 @@ void DisplayController::operate() {
       case MUSIC_MODE:
         displaySong(songIndex);
         break;
+      case FUNCTION_MODE:
+        displayText(text, DELAY_AFTER_MESSAGE, false);
+        break;
       case HELLO_MODE:
         displayHello();
         break;
@@ -177,27 +185,38 @@ void DisplayController::displayHello() {
 }
 
 void DisplayController::displaySong(int index) {
+  const char* title = songsController->getTrack(index);
+  displayText(title, DELAY_AFTER_SONG, true);
+}
+
+void DisplayController::displayText(const char* message, int delay, bool scroll) {
   bool doIt = CONTROL_DISPLAY == ENABLED;
+  const char* title = message;
+
   if (!isScrolling)
-    if (doIt) displayMessage(songsController->getTrack(index), 1);
+    if (doIt) {
+      displayMessage(title, 1, scroll);
+    }
   unsigned long time = millis();
-  if (time - timeSongTitleBeingShown > DELAY_AFTER_SONG) {
+  if (time - timeMessageBeingShown > delay) {
     mode = TIME_MODE;
     isScrolling = false;
     if (doIt) display.stopscroll();
   }
 }
 
-void DisplayController::displayMessage(const char* message, int fontsize) {
+void DisplayController::displayMessage(const char* message, int fontsize, bool scroll) {
   if (CONTROL_DISPLAY == ENABLED) {
     display.clearDisplay();
-    display.setCursor(0, 0);
+    display.setCursor(0, 2);
     display.setTextSize(fontsize);
     display.setFont();
     display.println(message);
     display.display();
-    display.startscrollright(0x00, 0x0F);
-    isScrolling = true;
+    if (scroll) {
+      display.startscrollright(0x00, 0x0F);
+      isScrolling = true;
+    }
   }
 }
 
@@ -205,8 +224,16 @@ void DisplayController::requestNewSong(int index) {
   dbg("DisplayController: NextSong");
   mode = MUSIC_MODE;
   songIndex = index-1;
-  timeSongTitleBeingShown = millis();
+  timeMessageBeingShown = millis();
   isScrolling = false;
+}
+
+void DisplayController::sendMessage(const char* message) {
+  dbg("DisplayController: show Message");
+  mode = FUNCTION_MODE;
+  timeMessageBeingShown = millis();
+  isScrolling = false;
+  text = message;
 }
 
 

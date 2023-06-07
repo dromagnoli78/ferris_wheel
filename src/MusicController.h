@@ -284,7 +284,7 @@ int MusicController::computeSkip(u_char c){
       break;
     case 'D':
       dbg("MusicController ComputeSkip: Returning -1D");
-      return computePreviousFolder();
+      skip = songsController->computePreviousFolder(currentTrack);
   }
   return skip;
 }

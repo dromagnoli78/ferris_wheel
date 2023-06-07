@@ -16,27 +16,27 @@
 //#define LED_EYE_2 7
 
 #define CONSOLE_TOTAL_LEDS 7
-#define LED_MUTE_COLOR strip.ColorHSV(0, 255, CONSOLE_LIGHTS_INTENSITY)
-#define LED_MUSIC_COLOR strip.ColorHSV(330 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
-#define LED_SLEEP_COLOR strip.ColorHSV(240 * 182.04, 255, SLEEP_LED_INTENTISY)
-#define LED_LIGHTS_COLOR strip.ColorHSV(54 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
-#define LED_STEPPER_COLOR strip.ColorHSV(124 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
 //#define LED_EYES_COLOR strip.ColorHSV(40 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
 
 class ConsoleLightsController {
 private:
   // timing variables
   unsigned long timeOfLastCheck = 0;
+  unsigned long timeOfBlinking = 0;
   unsigned long timeOfLastDebug = 0;
+  bool blinkingSettings = false;
+  int brightness = LED_BRIGHTNESS;
   bool leds[CONSOLE_TOTAL_LEDS];
   uint32_t colors[CONSOLE_TOTAL_LEDS];
   uint8_t settingsLed = 0; // Which led should be replicated by the settings
   bool sleepMode = false;
   Adafruit_NeoPixel strip;
   MusicController* musicController;
+  ModeController* modeController;
 public:
-  ConsoleLightsController(MusicController* pMusicController) {
+  ConsoleLightsController(ModeController* pModeController, MusicController* pMusicController) {
     musicController = pMusicController;
+    modeController = pModeController;
     strip = Adafruit_NeoPixel(CONSOLE_TOTAL_LEDS, CONSOLE_LIGHTS_CONTROLLER_DATA_PIN, NEO_GRB + NEO_KHZ800);
   };
   void init();
@@ -82,6 +82,7 @@ public:
   };
 
   void adjustBrightness(uint8_t value) {
+    brightness = value+10;
     strip.setBrightness(value);
   };
 
@@ -112,16 +113,16 @@ public:
     }
   }
 
-  void lights(bool onOff) {
-    if (onOff) {
+  void lights(bool isOn) {
+    if (isOn) {
       setLed(LED_LIGHTS, true);
     } else {
       turnOff(LED_LIGHTS);
     }
   }
 
-  void music(bool onOff) {
-    if (onOff) {
+  void music(bool isOn) {
+    if (isOn) {
       setLed(LED_MUSIC, true);
     } else {
       turnOff(LED_MUSIC);
@@ -135,8 +136,6 @@ void ConsoleLightsController::init() {
   for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
     leds[i] = false;
   }
-  //leds[LED_EYE_1] = true;
-  //leds[LED_EYE_2] = true;
 
   // Each led has its own specific color
   colors[LED_MUSIC] = LED_MUSIC_COLOR;
@@ -145,8 +144,6 @@ void ConsoleLightsController::init() {
   colors[LED_LIGHTS] = LED_LIGHTS_COLOR;
   colors[LED_SLEEP] = LED_SLEEP_COLOR;
   colors[LED_SETTINGS] = BLACK_COLOR;
-  //colors[LED_EYE_1] = LED_EYES_COLOR;
-  //colors[LED_EYE_2] = LED_EYES_COLOR;
   settingsLed = LED_SETTINGS;
 }
 
@@ -155,7 +152,21 @@ void ConsoleLightsController::operate() {
   unsigned long time = millis();
   uint32_t color = 0;
   if (time - timeOfLastCheck > DELTA_TIME_CONSOLE_UPDATES) {
-    if (!sleepMode) {
+    if (modeController->isSettings()) {
+      if (time - timeOfBlinking > DELTA_TIME_BLINK) {
+        blinkingSettings = !blinkingSettings;
+        colors[LED_SETTINGS] = blinkingSettings ? BLUE_COLOR : YELLOW_COLOR;
+        timeOfBlinking = time;
+      }
+
+    } 
+    if (modeController->isSleeping()) {
+      // Implement transition
+      for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
+        strip.setPixelColor(i, BLACK_COLOR);
+      }
+      strip.setPixelColor(LED_SLEEP, LED_SLEEP_COLOR);
+    } else {
       for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
         color = leds[i] ? colors[i] : BLACK_COLOR;
         strip.setPixelColor(i, color);
@@ -163,16 +174,11 @@ void ConsoleLightsController::operate() {
       strip.setPixelColor(LED_SETTINGS, colors[settingsLed]);
       int volume = musicController->getAnalogVolume();
       adjustVolume(volume);
-    } else {
-      // Implement transition
-      for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
-        strip.setPixelColor(i, BLACK_COLOR);
-      }
-      strip.setPixelColor(LED_SLEEP, LED_SLEEP_COLOR);
     }
     strip.show();
     timeOfLastCheck = time;
   }
+
   if (CURRENT_MODE > DEBUG_MODE) {
     if (time - timeOfLastDebug > 30000) {
       Serial.println("ConsoleLightsController operate");

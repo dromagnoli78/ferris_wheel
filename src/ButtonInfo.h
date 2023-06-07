@@ -1,6 +1,8 @@
 #ifndef ButtonInfo_h
 #define ButtonInfo_h
 
+#include "ModeController.h"
+
 /*
 Each Button can be associated to a ButtonInfo instance
 */
@@ -8,8 +10,10 @@ class ButtonInfo {
 private:
   int buttonPin;                          // The PIN associated to the button
   unsigned long lastTimeOnButtonControl;  // The millis() of the last time the button state has been taken into account
-  bool pressed;                           // True if the button has been long pressed
+  unsigned long buttonStartTime = 0;
   bool clicked = false;                   // True if the button has been clicked
+  bool pressed = false;                   // True if the button has been seimply pressed
+  bool longPressed;                       // True if the button has been long pressed
   char name;                              // Signature of the button for quick reference during debug
   bool standalone = false;
 
@@ -31,8 +35,8 @@ public:
     describeMessage('B');
   };
 
-  bool isPressed() {
-    return pressed;
+  bool isLongPressed() {
+    return longPressed;
   };
 
   bool isClicked() {
@@ -45,7 +49,7 @@ public:
   };
 
   void press() {
-    pressed = true;
+    longPressed = true;
   };
 
   void reset() {
@@ -63,14 +67,30 @@ void ButtonInfo::operate() {
     
     long time = millis();
     // Read the status of the button
-    int button = digitalRead(buttonPin);
-    if (button == BUTTON_PRESSED) {
-      if ((time - lastTimeOnButtonControl) > BUTTON_CONTROLS_DELTA_TIME) {
-        // Set the button to clicked and set the time
-        dbg("Button Clicked:", name);
-        clicked = true;
-        lastTimeOnButtonControl = time;
+    if ((time - lastTimeOnButtonControl) > BUTTON_CONTROLS_DELTA_TIME) {
+      int button = digitalRead(buttonPin);
+      if (button == BUTTON_PRESSED) {
+        if (!pressed) {
+          // Set the button to clicked and set the time
+          dbg("Button Clicked:", name);
+          clicked = true;
+          pressed = true;
+          buttonStartTime = time;
+        }
+
+        if (!longPressed && (time - buttonStartTime >= BUTTON_LONG_PRESSED_DELTA_TIME)) {
+          longPressed = true;
+        }
+      } else {
+        if (pressed) {
+          pressed = false;
+          if (!longPressed && (time - buttonStartTime) < BUTTON_LONG_PRESSED_DELTA_TIME) {
+
+          }
+          longPressed = false;
+        }
       }
+      lastTimeOnButtonControl = time;
     }
   }
 };
@@ -81,7 +101,7 @@ void ButtonInfo::debug() {
   Serial.print(" clicked:");
   Serial.print(clicked);
   Serial.print(" pressed:");
-  Serial.println(pressed);
+  Serial.println(longPressed);
 };
 
 void ButtonInfo::describeMessage(char c) {

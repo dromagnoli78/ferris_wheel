@@ -5,7 +5,7 @@ const char* songs[]={
 "Tchaikovsky\nSwan Lake",
 "Dmitri Shostakovich\nWaltz N2",
 "Elfen Lied\nLilium",
-"Green\nsleeves",
+"Green Sleeves",
 "Johann Strauss\nSul bel danubio blu",
 "Howl's Moving Castle",
 "Johann Strauss\nRadetzky march",
@@ -72,6 +72,7 @@ public:
   const int getTracksPerFolder(int i){ return tracksPerFolder[i];};
   const int getLastTrack(){ return 46;};
   int computeNextFolder(int currentTrack);
+  int computePreviousFolder(int currentTrack);
 };
 
 int SongsController::computeNextFolder(int currentTrack) {
@@ -88,10 +89,34 @@ int SongsController::computeNextFolder(int currentTrack) {
       }
       break;
     }
-
   }
   dbg ("Jumping tracks:", jump);
   return jump;
+};
+
+int SongsController::computePreviousFolder(int currentTrack) {
+  int runningTrack = currentTrack;
+  int incrementalTrack = 0;
+  int previousIncrementalTrack = 0;
+  int folder = 0;
+  int jump = 0;
+  for (;folder < getNumFolders(); folder++) {
+     incrementalTrack += tracksPerFolder[folder];
+     if ((runningTrack == incrementalTrack + 1) || runningTrack < incrementalTrack) {
+       jump = (runningTrack - previousIncrementalTrack) - 1;
+       break;
+     } else {
+       previousIncrementalTrack = incrementalTrack;
+     }
+  }
+  if (folder == getNumFolders()) {
+     jump = (runningTrack - previousIncrementalTrack) -1;
+  }
+  if (runningTrack - jump < 0) {
+     jump = -(runningTrack-1);
+  }
+  dbg ("Jumping tracks:", -jump);
+  return -jump;
 };
 
 #endif

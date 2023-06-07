@@ -23,36 +23,65 @@ public:
     pinMode(line3, OUTPUT);
     pinMode(line4, OUTPUT);
   }
-  void doStep();
+  void doStep(bool moveClockwise);
   void stop();
 };
 
-void MyStepper::doStep() {
-  switch (phase) {
-    case 0:
-      digitalWrite(line1, HIGH);
-      digitalWrite(line2, HIGH);
-      digitalWrite(line3, LOW);
-      digitalWrite(line4, LOW);
-      break;
-    case 1:
-      digitalWrite(line1, LOW);
-      digitalWrite(line2, HIGH);
-      digitalWrite(line3, HIGH);
-      digitalWrite(line4, LOW);
-      break;
-    case 2:
-      digitalWrite(line1, LOW);
-      digitalWrite(line2, LOW);
-      digitalWrite(line3, HIGH);
-      digitalWrite(line4, HIGH);
-      break;
-    case 3:
-      digitalWrite(line1, HIGH);
-      digitalWrite(line2, LOW);
-      digitalWrite(line3, LOW);
-      digitalWrite(line4, HIGH);
-      break;
+void MyStepper::doStep(bool moveClockwise) {
+  if (!moveClockwise) {
+    switch (phase) {
+      case 0:
+        digitalWrite(line1, HIGH);
+        digitalWrite(line2, HIGH);
+        digitalWrite(line3, LOW);
+        digitalWrite(line4, LOW);
+        break;
+      case 3:
+        digitalWrite(line1, LOW);
+        digitalWrite(line2, HIGH);
+        digitalWrite(line3, HIGH);
+        digitalWrite(line4, LOW);
+        break;
+      case 2:
+        digitalWrite(line1, LOW);
+        digitalWrite(line2, LOW);
+        digitalWrite(line3, HIGH);
+        digitalWrite(line4, HIGH);
+        break;
+      case 1:
+        digitalWrite(line1, HIGH);
+        digitalWrite(line2, LOW);
+        digitalWrite(line3, LOW);
+        digitalWrite(line4, HIGH);
+        break;
+    }
+  }else {
+    switch (phase) {
+      case 0:
+        digitalWrite(line1, HIGH);
+        digitalWrite(line2, HIGH);
+        digitalWrite(line3, LOW);
+        digitalWrite(line4, LOW);
+        break;
+      case 1:
+        digitalWrite(line1, LOW);
+        digitalWrite(line2, HIGH);
+        digitalWrite(line3, HIGH);
+        digitalWrite(line4, LOW);
+        break;
+      case 2:
+        digitalWrite(line1, LOW);
+        digitalWrite(line2, LOW);
+        digitalWrite(line3, HIGH);
+        digitalWrite(line4, HIGH);
+        break;
+      case 3:
+        digitalWrite(line1, HIGH);
+        digitalWrite(line2, LOW);
+        digitalWrite(line3, LOW);
+        digitalWrite(line4, HIGH);
+        break;
+    }
   }
   phase++;
   phase %= 4;
@@ -95,6 +124,14 @@ bool StepperController::triggerMovement() {
 
 void StepperController::speedChange(u_char c) {
   switch (c) {
+    case 'L':
+      dbg("Stepper Anti-Clockwise");
+      moveClockwise = false;
+      break;
+    case 'R':
+      dbg("Stepper Clockwise");
+      moveClockwise = true;
+      break;
     case 'U':
       currentSpeed++;
       if (currentSpeed > 3) {
@@ -154,7 +191,7 @@ void StepperController::operate() {
       }
     }
     if (!isStopped) {
-      stepper.doStep();
+      stepper.doStep(moveClockwise);
     }
   }
 }

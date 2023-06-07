@@ -5,21 +5,10 @@
 #include "ConsoleController.h"
 #include "ConsoleLightsController.h"
 #include "DisplayController.h"
+#include "ModeController.h"
 #include "Constants.h"
 #include <Arduino.h>
-//#include <SoftwareSerial.h>
 
-
-/**
- * Operational modes
- */
-#define START_MODE 100
-#define INITMODE 101
-#define TEST_MODE 103
-#define DIAGNOSE_MODE 104
-#define WORKING_MODE 105
-#define SETTING_MODE 106
-#define SLEEPING_MODE 200
 
 #define uS_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */ 
 #define TIME_TO_SLEEP 5
@@ -33,56 +22,23 @@ int mode = START_MODE;
 //SoftwareSerial mySerial(MP3_RX_PIN, MP3_TX_PIN);
 HardwareSerial mySerial(1);
 DFRobotDFPlayerMini mp3Player;
-
+ModeController modeController = ModeController();
 ButtonController buttonsController = ButtonController();
-DisplayController displayController = DisplayController();
+DisplayController displayController = DisplayController(&modeController);
 
 LedController ledController = LedController();
 StepperController stepperController = StepperController(STEPPER_INIT_SPEED);
 MusicController musicController = MusicController(&displayController);
-ConsoleLightsController consoleLightsController = ConsoleLightsController(&musicController);
+ConsoleLightsController consoleLightsController = ConsoleLightsController(&modeController, &musicController);
 
-ConsoleController consoleController = ConsoleController(&ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
-
-
-/** void operate2(void* pvParameters) {
-  int line1=25;
-  int line2=33;
-  int line3=32;
-  int line4=13;
-  while (true) {
-  delay(100);
-      digitalWrite(line1, HIGH);
-      digitalWrite(line2, HIGH);
-      digitalWrite(line3, LOW);
-      digitalWrite(line4, LOW);
-  delay(100);
-      digitalWrite(line1, LOW);
-      digitalWrite(line2, HIGH);
-      digitalWrite(line3, HIGH);
-      digitalWrite(line4, LOW);
-delay(100);
-      digitalWrite(line1, LOW);
-      digitalWrite(line2, LOW);
-      digitalWrite(line3, HIGH);
-      digitalWrite(line4, HIGH);
-delay(100);
-      digitalWrite(line1, HIGH);
-      digitalWrite(line2, LOW);
-      digitalWrite(line3, LOW);
-      digitalWrite(line4, HIGH);
-      }
-}
-*/
+ConsoleController consoleController = ConsoleController(&modeController, &ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
 
 void setup() {
-  if (CURRENT_MODE > DEBUG_MODE) {
-    Serial.begin(115200);
-    Serial.println("Setting up");
-  }
-  delay(2000);
-
-  //mySerial.begin(9600);
+  modeController.begin();
+  delay(500);
+  pinMode(BUTTON_POWER_ON, OUTPUT);
+  delay(200);
+  digitalWrite(BUTTON_POWER_ON, HIGH);
   if (CONTROL_MUSIC == ENABLED)
     mySerial.begin(9600, SERIAL_8N1,MP3_RX_PIN, MP3_TX_PIN);
 
@@ -104,7 +60,7 @@ void setup() {
   displayController.begin();
   consoleLightsController.begin();
   consoleController.begin();
-  //xTaskCreatePinnedToCore(operate2, "Operate", 10000,NULL, 1, &Task2, 0);
+  
 
 }
 
