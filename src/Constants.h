@@ -30,6 +30,7 @@
 #define SETTING_MODE 106
 #define PRE_SLEEPING_MODE 199
 #define SLEEPING_MODE 200
+#define OFF_MODE 900
 
 
 #define SLEEP_TRACK 5

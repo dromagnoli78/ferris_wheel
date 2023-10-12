@@ -18,7 +18,6 @@
 
 long t = 0;
 bool debug = true;
-int mode = START_MODE;
 //SoftwareSerial mySerial(MP3_RX_PIN, MP3_TX_PIN);
 HardwareSerial mySerial(1);
 DFRobotDFPlayerMini mp3Player;
@@ -79,12 +78,12 @@ void initialize() {
     mp3Player.enableLoopAll();
   if (CURRENT_MODE > DEBUG_MODE)
     Serial.println("Going to Working mode!");
-  mode = WORKING_MODE;
+  modeController.working();
 }
 
 
-void workingmode() {
-  if (mode == START_MODE) {
+void doWork() {
+  if (modeController.isStart()) {
     loop();
   }
 
@@ -107,29 +106,23 @@ void workingmode() {
     dbg("Everything is off! Sleeping");
     delay(1000);
     esp_deep_sleep_start();
-    mode = SLEEPING_MODE;
+    modeController.off();
     loop();
   }
 
 }
 
 void loop() {
-  switch (mode) {
-    case START_MODE:
-      initialize();
-      break;
-    /*    case TEST_MODE:
-      testmode();
-      break;
-    case DIAGNOSE_MODE:
-      diagnoseMode();
-      break;
-*/
-    case WORKING_MODE:
-      workingmode();
-      break;
-    case SLEEPING_MODE:
-      break;
+  if (modeController.isStart()){
+     initialize();
+  } else if (modeController.isWorking()){
+     doWork();
+  } else if (modeController.isOff()) {
+    // DoNothing
+  } else if (modeController.isSleeping()) {
+    doWork();
+  } else if (modeController.isSettings()) {
+    doWork();
   }
 }
 
