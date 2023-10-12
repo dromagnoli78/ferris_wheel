@@ -37,10 +37,9 @@ private:
   unsigned long sleepingStepInterval = 0;
   int sleepingSteps = 0;
   DFRobotDFPlayerMini* mp3Player;
+public:
   DisplayController* displayController;
   TracksController* tracksController;
-
-public:
   MusicController(DisplayController* pDisplayController){
     displayController = pDisplayController;
     tracksController = displayController->tracksController;

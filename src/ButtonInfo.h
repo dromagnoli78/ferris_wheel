@@ -12,7 +12,7 @@ private:
   unsigned long lastTimeOnButtonControl;  // The millis() of the last time the button state has been taken into account
   unsigned long buttonStartTime = 0;
   bool clicked = false;                   // True if the button has been clicked
-  bool pressed = false;                   // True if the button has been seimply pressed
+  bool pressed = false;                   // True if the button has been simply pressed
   bool longPressed;                       // True if the button has been long pressed
   char name;                              // Signature of the button for quick reference during debug
   bool standalone = false;
@@ -55,6 +55,8 @@ public:
   void reset() {
     // Reset the status of the button so it results not clicked anymore
     clicked = false;
+    pressed = false;
+    longPressed = false;
     dbg("Button Reset: ", name);
   };
 };
@@ -69,26 +71,25 @@ void ButtonInfo::operate() {
     // Read the status of the button
     if ((time - lastTimeOnButtonControl) > BUTTON_CONTROLS_DELTA_TIME) {
       int button = digitalRead(buttonPin);
-      if (button == BUTTON_PRESSED) {
-        if (!pressed) {
+      if (button == BUTTON_PRESSED && !pressed) {
           // Set the button to clicked and set the time
-          dbg("Button Clicked:", name);
-          clicked = true;
+          dbg("Button Pressed:", name);
           pressed = true;
           buttonStartTime = time;
+      }
+      if (button != BUTTON_PRESSED && pressed) {
+        unsigned long buttonReleaseTime = millis();
+        unsigned long buttonPressDuration = buttonReleaseTime - buttonStartTime;
+        if (buttonPressDuration < 50) {
+          // Ignore shorter button presses as noise
+          return;
         }
-
-        if (!longPressed && (time - buttonStartTime >= BUTTON_LONG_PRESSED_DELTA_TIME)) {
+        if (buttonPressDuration >= BUTTON_LONG_PRESSED_DELTA_TIME) {
           longPressed = true;
+        } else {
+          clicked = true;
         }
-      } else {
-        if (pressed) {
-          pressed = false;
-          if (!longPressed && (time - buttonStartTime) < BUTTON_LONG_PRESSED_DELTA_TIME) {
-
-          }
-          longPressed = false;
-        }
+        pressed = false;
       }
       lastTimeOnButtonControl = time;
     }

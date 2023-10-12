@@ -12,30 +12,17 @@ public:
             Serial.begin(115200);
             Serial.println("Setting up");
         }
+        mode = START_MODE;
     };
-    bool isSleeping() {
-        return mode == SLEEPING_MODE;
-    };
-
-    bool isSettings() {
-        return mode == SETTING_MODE;
-    };
-
-    bool isWorking() {
-        return mode == WORKING_MODE;
-    };
-
-    void settings() {
-        mode = SETTING_MODE;
-    }
-
-    void sleep() {
-        mode = SLEEPING_MODE;
-    }
-
-    void working() {
-        mode = WORKING_MODE;
-    }
+    bool isStart(){return mode == START_MODE;}
+    bool isSleeping() {return mode == SLEEPING_MODE;}
+    bool isSettings() {return mode == SETTING_MODE;}
+    bool isWorking() {return mode == WORKING_MODE;}
+    bool isOff() {return mode == OFF_MODE;}
+    void settings() {mode = SETTING_MODE;}
+    void sleep() {mode = SLEEPING_MODE;}
+    void working() {mode = WORKING_MODE;}
+    void off(){mode = OFF_MODE;}
 };
 
 

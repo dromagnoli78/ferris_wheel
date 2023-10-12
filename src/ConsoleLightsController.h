@@ -41,9 +41,10 @@ private:
   uint8_t settingsLed = 0; // Which led should be replicated by the settings
   bool sleepMode = false;
   Adafruit_NeoPixel strip;
+  
+public:
   MusicController* musicController;
   ModeController* modeController;
-public:
   ConsoleLightsController(ModeController* pModeController, MusicController* pMusicController) {
     musicController = pMusicController;
     modeController = pModeController;
