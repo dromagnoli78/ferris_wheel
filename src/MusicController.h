@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include "DFRobotDFPlayerMini.h"
 #include "Constants.h"
+#include "TracksController.h"
 #include "DisplayController.h"
 
 #define DELTA_TIME 100
@@ -16,10 +17,9 @@ private:
   bool muted = false;
   bool canPlay = false;
   bool muteTriggered = false;
-  int songRequestIncrement = 0;
+  int trackRequestIncrement = 0;
   bool songTriggered = false;
   bool sleepMode = false;
-
   int lastTrack;
   int numFolders = 0;
   int currentTrack = 0;
@@ -38,12 +38,12 @@ private:
   int sleepingSteps = 0;
   DFRobotDFPlayerMini* mp3Player;
   DisplayController* displayController;
-  SongsController* songsController;
+  TracksController* tracksController;
 
 public:
   MusicController(DisplayController* pDisplayController){
     displayController = pDisplayController;
-    songsController = displayController->songsController;
+    tracksController = displayController->tracksController;
   };
   void init();
   void begin(DFRobotDFPlayerMini* pMp3Player);
@@ -53,7 +53,7 @@ public:
   int computeSkip(u_char c);
   int computeNextFolder();
   int computePreviousFolder();
-  void requestNewSong(int step);
+  void requestNewTrack(int step);
   void sleeping(bool isSleeping);
   bool requestMute();
   void stop();
@@ -71,19 +71,19 @@ void MusicController::begin(DFRobotDFPlayerMini* pMp3Player) {
   mp3Player = pMp3Player;
 }
 
-void MusicController::requestNewSong(int step){
+void MusicController::requestNewTrack(int step){
     if (!sleepMode) {
-      songRequestIncrement = step;
+      trackRequestIncrement = step;
       canPlay = true;
     }
-    dbg("MusicController Requesting Song Change:", step);
+    dbg("MusicController Requesting Track Change:", step);
   }
 
 void MusicController::stop() {
   dbg("MusicController Stopping");
   mp3Player->stop();
   playing = false;
-  songRequestIncrement = 0;
+  trackRequestIncrement = 0;
 }
 
 void MusicController::pause() {
@@ -91,7 +91,7 @@ void MusicController::pause() {
   mp3Player->pause();
   playing = false;
   paused = true;
-  songRequestIncrement = 0;
+  trackRequestIncrement = 0;
 }
 
 void MusicController::unpause() {
@@ -101,7 +101,7 @@ void MusicController::unpause() {
     paused = false;
     playing = true;
     } else {
-      requestNewSong(1);
+      requestNewTrack(1);
     }
 }
 
@@ -113,7 +113,7 @@ void MusicController::init() {
   previousVolume = volume;
   unsigned long time = millis();
   lastTrack = mp3Player->readFileCounts();
-  numFolders = songsController->getNumFolders();
+  numFolders = tracksController->getNumFolders();
   sleepTrack = lastTrack;
 
   mp3Player->EQ(DFPLAYER_EQ_CLASSIC);
@@ -121,7 +121,7 @@ void MusicController::init() {
   lastPlayCheckTime = time;
   if (CURRENT_MODE > DEBUG_MODE){
      Serial.println("MusicController init");
-     Serial.print("Found songs: ");
+     Serial.print("Found Tracks: ");
      Serial.println(lastTrack);
   }
 }
@@ -186,7 +186,7 @@ void MusicController::operate() {
 
   // volume control
   int deltaTime = sleepMode ? sleepingStepInterval :  DELTA_VOLUME_TIME;
-  if ((time - lastVolumeCheckTime) > deltaTime && songRequestIncrement==0) {
+  if ((time - lastVolumeCheckTime) > deltaTime && trackRequestIncrement==0) {
     adjustVolume();
     lastVolumeCheckTime = time;
   }
@@ -203,23 +203,27 @@ void MusicController::operate() {
       // Did it stop playing?
       if (readType == DFPlayerPlayFinished) {
         playing = false;
-        songRequestIncrement = 1;
+        trackRequestIncrement = 1;
       }
     }
 
     bool play = true;
-    if (canPlay && (!playing || songRequestIncrement != 0)) {
+    if (canPlay && (!playing || trackRequestIncrement != 0)) {
       if (!sleepMode) {
-        if (songRequestIncrement != 0)
+        if (trackRequestIncrement != 0)
           ("MusicController playing next");
-        currentTrack+=songRequestIncrement;
+        currentTrack+=trackRequestIncrement;
         if (currentTrack <= 0) {
           currentTrack = lastTrack;
         } else if (currentTrack > lastTrack) {
           currentTrack = 1;
         }
-        if (songRequestIncrement != 0) {
-          displayController->requestNewSong(currentTrack);
+        if (trackRequestIncrement != 0) {
+          int trackIndex = currentTrack-1;
+          const char* trackTitle = tracksController->getTrack(trackIndex);
+          displayController->initDisplayTrack(trackTitle);
+          displayController->requestNewTrack(currentTrack);
+
         }
       } else {
         currentTrack = sleepTrack;
@@ -228,12 +232,12 @@ void MusicController::operate() {
         }
       }
       
-      if (songRequestIncrement != 0||sleepMode){
-        dbg("MusicController is going to play song number:", currentTrack);
+      if (trackRequestIncrement != 0||sleepMode){
+        dbg("MusicController is going to play track number:", currentTrack);
         if (play) mp3Player->play(currentTrack);
         playing = play;
       }
-      songRequestIncrement = 0;
+      trackRequestIncrement = 0;
     }
     lastPlayCheckTime = time;
     lastOperateCheckTime = time;
@@ -249,7 +253,7 @@ void MusicController::sleeping(bool sleeping){
   sleepMode = sleeping;
   if (sleepMode) {
     
-    currentTrack = SLEEP_SONG;
+    currentTrack = SLEEP_TRACK;
     sleepStartTime = millis();
     sleepLastCheck = sleepStartTime;
     playing = false;
@@ -280,11 +284,11 @@ int MusicController::computeSkip(u_char c){
       break;
     case 'U':
       dbg("MusicController ComputeSkip: Returning +1D");
-      skip = songsController->computeNextFolder(currentTrack);
+      skip = tracksController->computeNextFolder(currentTrack);
       break;
     case 'D':
       dbg("MusicController ComputeSkip: Returning -1D");
-      skip = songsController->computePreviousFolder(currentTrack);
+      skip = tracksController->computePreviousFolder(currentTrack);
   }
   return skip;
 }

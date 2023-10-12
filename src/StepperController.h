@@ -114,6 +114,7 @@ public:
   bool triggerMovement();
   bool isItStopped(){return isStopped;};
   void speedChange(u_char c);
+  const char* getSpeedSymbol();
 };
 
 bool StepperController::triggerMovement() {
@@ -121,6 +122,30 @@ bool StepperController::triggerMovement() {
   dbg("StepperController triggered");
   return !isStopped;
 }
+
+const char* StepperController::getSpeedSymbol() {
+  if (moveClockwise) {
+    if (currentSpeed == 1) {
+      return "Stepper>";
+    } else if (currentSpeed == 2) {
+      return "Stepper>>";
+    } else if (currentSpeed == 3) {
+      return "Stepper>>>";
+    } else {
+      return "-";
+    }
+  } else {
+    if (currentSpeed == 1) {
+      return "  <Stepper";
+    } else if (currentSpeed == 2) {
+      return " <<Stepper";
+    } else if (currentSpeed == 3) {
+      return "<<<Stepper";
+    } else {
+      return "-";
+    }
+  }
+}  
 
 void StepperController::speedChange(u_char c) {
   switch (c) {

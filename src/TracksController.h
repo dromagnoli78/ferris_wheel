@@ -1,42 +1,42 @@
-#ifndef songsController_h
-#define songsController_h
+#ifndef TracksController_h
+#define TracksController_h
 
-const char* songs[]={
-"Tchaikovsky\nSwan Lake",
-"Dmitri Shostakovich\nWaltz N2",
-"Elfen Lied\nLilium",
+const char* tracks[]={
+"Tchaikovsky - Swan Lake",
+"Dmitri Shostakovich - Waltz N2",
+"Elfen Lied - Lilium",
 "Green Sleeves",
-"Johann Strauss\nSul bel danubio blu",
+"Johann Strauss - Sul bel danubio blu",
 "Howl's Moving Castle",
-"Johann Strauss\nRadetzky march",
-"Johannes Brahms\nHungarian dance N5",
-"Johannes Brahms\nLullaby",
-"Carnevale 1921\nSu la coppa di Champagne",
-"Carnevale 1922\nMaschereide",
-"Carnevale 1924\nCarnevale a Viareggio",
-"Carnevale 1924\nRisveglio dopo l'orgia",
-"Carnevale 1928\nCarnevale ai Bagni",
-"Carnevale 1929\nSpiaggia D'Or",
-"Carnevale 1932\nCarnevale di Baci",
-"Carnevale 1933\nCanto del Carnevale",
-"Carnevale 1935\nBallata a Viareggio",
-"Carnevale 1982\nUn'Onda Scivola",
-"Carnevale 1983\nChe grande Idea",
-"Carnevale 1983\nPolvere di sole",
-"Carnevale 1987\nCome un Coriandolo",
+"Johann Strauss - Radetzky march",
+"Johannes Brahms - Hungarian dance N5",
+"Johannes Brahms - Lullaby",
+"Carnevale 1921 - Su la coppa di Champagne",
+"Carnevale 1922 - Maschereide",
+"Carnevale 1924 - Carnevale a Viareggio",
+"Carnevale 1924 - Risveglio dopo l'orgia",
+"Carnevale 1928 - Carnevale ai Bagni",
+"Carnevale 1929 - Spiaggia D'Or",
+"Carnevale 1932 - Carnevale di Baci",
+"Carnevale 1933 - Canto del Carnevale",
+"Carnevale 1935 - Ballata a Viareggio",
+"Carnevale 1982 - Un'Onda Scivola",
+"Carnevale 1983 - Che grande Idea",
+"Carnevale 1983 - Polvere di sole",
+"Carnevale 1987 - Come un Coriandolo",
 "Facciamo un Pupazzo Insieme",
 "Oggi per la Prima Volta",
-"All'Alba sorgerò",
+"All'Alba sorgero'",
 "Il fiume del passato",
 "Nell'ignoto",
 "Mostrati",
-"Fai ciò che è giusto",
+"Fai cio' che e' giusto",
 "Qualche cosa non cambia mai",
 "La famiglia Madrigal",
 "La pressione sale",
 "Un Miracolo",
 "Non si nomina Bruno",
-"Cos'Altro Farò",
+"Cos'Altro Faro'",
 "Oltre l'orizzonte",
 "Tranquilla",
 "Lo splendente Tamatoa",
@@ -46,8 +46,8 @@ const char* songs[]={
 "Il mio nuovo sogno",
 "La Bella e la Bestia",
 "In fondo al mar",
-"Dargen D'Amico\nDove Si Balla",
-"Johannes Brahms\nLullaby",
+"Dargen D'Amico - Dove Si Balla",
+"Johannes Brahms - Lullaby",
 };
 
 const char* folders[]={
@@ -63,19 +63,22 @@ const char* folders[]={
 };
 
 const int tracksPerFolder[9]= {9,13,8,5,3,4,2,1,1};
-class SongsController {
+class TracksController {
 public:
-  SongsController(){};
-  const char* getTrack(int i) {return songs[i];};
+  TracksController(){};
+  const char* getTrack(int i) {return tracks[i];};
+  const char* getFolder(int i) {return folders[i];};
   const int getNumFolders(){return 9;};
   const int* getTracksPerFolder(){ return tracksPerFolder;};
   const int getTracksPerFolder(int i){ return tracksPerFolder[i];};
   const int getLastTrack(){ return 46;};
   int computeNextFolder(int currentTrack);
   int computePreviousFolder(int currentTrack);
+  int computeFolderByTrackNumber(int currentTrack);
+  const char* getLongestTrackName() {return "Carnevale 1921 - Su la coppa di Champagne";}
 };
 
-int SongsController::computeNextFolder(int currentTrack) {
+int TracksController::computeNextFolder(int currentTrack) {
   int runningTrack = currentTrack;
   int incrementalTrack = 0;
   int folder = 0;
@@ -94,7 +97,7 @@ int SongsController::computeNextFolder(int currentTrack) {
   return jump;
 };
 
-int SongsController::computePreviousFolder(int currentTrack) {
+int TracksController::computePreviousFolder(int currentTrack) {
   int runningTrack = currentTrack;
   int incrementalTrack = 0;
   int previousIncrementalTrack = 0;
@@ -117,6 +120,20 @@ int SongsController::computePreviousFolder(int currentTrack) {
   }
   dbg ("Jumping tracks:", -jump);
   return -jump;
+};
+
+int TracksController::computeFolderByTrackNumber(int currentTrack) {
+  int arraySize = getNumFolders();
+  int currentSum = 0;
+  int elementIndex = -1;
+  for (int i = 0; i < arraySize; i++) {
+      currentSum += tracksPerFolder[i];
+      if (currentSum >= currentTrack) {
+         elementIndex = i;
+         break;  // Exit the loop as soon as the target is reached or exceeded
+      }
+  }
+  return elementIndex;
 };
 
 #endif

@@ -2,6 +2,7 @@
 #define LedController_h
 
 #include "Constants.h"
+#include "TailSequence.h"
 #include <Adafruit_NeoPixel.h>
 
 // How many seconds to show each temperature before switching
@@ -11,6 +12,7 @@
 #define BLACKTIME 3
 
 #define FRAMES_PER_SECOND 45
+#define RANDOM_PATTERN_DURATION 30000
 
 #define DO_NOTHING 99
 #define REQUEST_OFF 88
@@ -23,12 +25,17 @@
 #define PATTERN_RAINBOW PATTERN_TAILS +1
 #define PATTERN_RGB_LOOP PATTERN_RAINBOW +1
 #define PATTERN_CIRCLE PATTERN_RGB_LOOP +1
+#define PATTERN_NEVER_END PATTERN_CIRCLE +1
+#define PATTERN_FIXED_COLOR PATTERN_NEVER_END +1
+
+#define PATTERN_RANDOM PATTERN_FIXED_COLOR +1
+#define PATTERN_MAX_VALUE PATTERN_RANDOM
 
 #define PATTERN_SLEEPING 100
 #define PATTERN_SHUTDOWN 101
 
 
-#define SEQUENCE_PATTERNS 7
+#define SEQUENCE_PATTERNS 10
 #define COLOR_PATTERNS 6
 
 #define BLACK_COLOR strip.Color(0, 0, 0)
@@ -38,13 +45,16 @@
 
 
 const char* sequenceNames[]={
-  "Single Led Sequence",
-  "Spinning Wheel",
-  "Growing Leds",
-  "Tail Leds",
+  "Sequence",
+  "Spinning",
+  "Growing",
+  "Tails",
   "Rainbow",
-  "RGB Loops", 
-  "Circle"
+  "RGB", 
+  "Circle",
+  "Looping",
+  "Fixed",
+  "Random"
 };
 
 class LedController {
@@ -54,6 +64,7 @@ private:
   unsigned long timeLastSequenceUpdate;
   unsigned long timeLastDebug = 0;
   unsigned long timeLastSleepCheck;
+  unsigned long timeLastRandomCheck=0;
   unsigned long timeSleepHasStarted;
   unsigned long timeSleepStartEffect = 0;
   
@@ -61,6 +72,7 @@ private:
   int deltaTimeOnLedChange = currentDeltaTime;
   int deltaTimeInLedSequences = currentDeltaTime;
   int deltaTimeOnSleepBreath = DELTA_SLEEPING_SLOW;
+  int currentRandomPattern = PATTERN_SINGLE;
 
   uint32_t colorPattern[COLOR_PATTERNS];
   uint32_t currentColorPattern = 0;
@@ -87,6 +99,8 @@ private:
   int brightness = LED_BRIGHTNESS;
   int hue = 0;
   float breathPhase = 0;
+  int tailSequenceStep = 0;
+  int phase = 0;
   int hueIncrement = 65536/(WHEEL_LOOPS * 4);
   Adafruit_NeoPixel strip;
   Adafruit_NeoPixel stripEye;
@@ -97,11 +111,12 @@ public:
     stripEye = Adafruit_NeoPixel(2, EYES_LED_DATA_PIN, NEO_GRB + NEO_KHZ800);
   };
   void init();
+  void initStripEye();
   void begin();
   void operate();
-  void ledSequence();
+  void ledSequence(int patternSequence);
   void nextSequence(int i);
-  void speedChange(u_char c);
+  void settingsChange(u_char c);
   byte* wheel(byte wheelPos);
   void singleLedSequence();
   void wheelSpinning();
@@ -110,6 +125,9 @@ public:
   void rgbLoop();
   void rainbow();
   void circle();
+  void randomize();
+  void neverEnd();
+  void fixedColor();
   void turnItOff();
   void turnItOn();
   void sleeping(bool isSleeping);
@@ -156,8 +174,9 @@ void LedController::nextSequence(int i) {
   deltaTimeInLedSequences = currentDeltaTime;
 }
 
-void LedController::speedChange(u_char c) {
-  switch (c) {
+void LedController::settingsChange(u_char c) {
+  if (pattern != PATTERN_FIXED_COLOR) {
+    switch (c) {
     case 'U':
       currentDeltaTime-=LIGHTS_DELAY_INCREMENT;
       dbg("Lights speed-up", currentDeltaTime);
@@ -170,10 +189,26 @@ void LedController::speedChange(u_char c) {
       if (currentDeltaTime > LIGHTS_DELAY_MAX)
         currentDeltaTime = LIGHTS_DELAY_MAX;
       break;
+    }
+    deltaTimeInLedSequences = currentDeltaTime;
+    deltaTimeOnLedChange = currentDeltaTime;
+    dbg("Final speed", deltaTimeInLedSequences);
+  } else {
+    switch (c) {
+    case 'U':
+      hue += 1024;
+      break;
+    case 'D':
+      if (hue >= 1024) {
+        hue-= 1024;
+      } else {
+        int step = 1024-hue;
+        hue = 65536 - step;
+      }
+      break;
+    }
+    hue %= 65536;
   }
-  deltaTimeInLedSequences = currentDeltaTime;
-  deltaTimeOnLedChange = currentDeltaTime;
-  dbg("Final speed", deltaTimeInLedSequences);
 
 }
 
@@ -183,10 +218,13 @@ void LedController::sleeping(bool isSleeping) {
     previousPattern = pattern;
     pattern = PATTERN_SLEEPING;
     rgb_intensity = MAX_VALUE_LIGHT_FOR_SLEEP;
+    stripEye.clear();
+    stripEye.show();
     timeSleepHasStarted = millis();
     dbg("LedController going to sleep with sleepTime:", timeSleepHasStarted);
-    
     fadeIn = false;
+  } else {
+    initStripEye();
   }
 }
 
@@ -195,7 +233,7 @@ void LedController::begin() {
   dbg("LedController begin");
   pinMode(ENABLE_POWER_LED, OUTPUT);
   delay(SETUP_DELAY);  // 3 second delay for recovery
-
+  randomSeed(analogRead(0));
   strip.setBrightness(0);
   stripEye.setBrightness(0);
   
@@ -207,16 +245,12 @@ void LedController::init() {
   off = true;
   digitalWrite(ENABLE_POWER_LED, HIGH);
   strip.setBrightness(LED_BRIGHTNESS);
-  stripEye.setBrightness(LED_BRIGHTNESS-10);
   for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
     strip.setPixelColor(i, BLACK_COLOR);
   }
   delay(50);
   strip.show();
-  stripEye.setPixelColor(0, BLUE_COLOR);
-  stripEye.setPixelColor(1, BLUE_COLOR);
-  delay(50);
-  stripEye.show();
+  initStripEye();
   unsigned long time = millis();
   timeLastSequenceUpdate = time;
   timeLastSleepCheck = time;
@@ -227,7 +261,14 @@ void LedController::init() {
   colorPattern[4] = strip.Color(0, 255, 0);    //GREEN
   colorPattern[5] = strip.Color(255, 255, 0);  //YELLOW
   pattern = DO_NOTHING;
-  
+}
+
+void LedController::initStripEye() {
+  stripEye.setBrightness(LED_BRIGHTNESS-10);
+  stripEye.setPixelColor(0, BLUE_COLOR);
+  stripEye.setPixelColor(1, BLUE_COLOR);
+  delay(50);
+  stripEye.show();
 }
 
 void LedController::operate() {
@@ -269,7 +310,7 @@ void LedController::operate() {
       shutdownSequence();
       break;
     default:
-      ledSequence();
+      ledSequence(pattern);
   }
 }
 
@@ -285,8 +326,8 @@ void LedController::turnItOn() {
     pattern = previousPattern;
 }
 
-void LedController::ledSequence() {
-  switch (pattern) {
+void LedController::ledSequence(int patternSequence) {
+  switch (patternSequence) {
     case PATTERN_SINGLE:
       singleLedSequence();
       break;
@@ -307,6 +348,15 @@ void LedController::ledSequence() {
       break;
     case PATTERN_CIRCLE:
       circle();
+      break;
+    case PATTERN_NEVER_END:
+      neverEnd();
+      break;
+    case PATTERN_FIXED_COLOR:
+      fixedColor();
+      break;
+     case PATTERN_RANDOM:
+      randomize();
       break;
   }
 }
@@ -537,39 +587,73 @@ void LedController::wheelSpinning() {
 void LedController::tails() {
   unsigned long time = millis();
   if (time - timeLastSequenceUpdate > deltaTimeInLedSequences) {
-    if (CURRENT_MODE > DETAILS_MODE) {
-      Serial.println("Sequence Up");
-    }
     int hsvC = hue;
     hue += hueIncrement;
+    int complHsv = (hsvC + 8192) % 65536;
     uint32_t colorHigh = strip.ColorHSV(hsvC, 255, 255);
     uint32_t colorMed = strip.ColorHSV(hsvC, 255, 80);
     uint32_t colorLow = strip.ColorHSV(hsvC, 255, 10);
+    uint32_t complColorHigh = strip.ColorHSV(complHsv, 255, 255);
+    uint32_t complColorMed = strip.ColorHSV(complHsv, 255, 80);
+    uint32_t complColorLow = strip.ColorHSV(complHsv, 255, 10);
     byte medLed = ledInSequence - 1;
     byte lowLed = ledInSequence - 2;
-    for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
-      if (i == ledInSequence) {
-        strip.setPixelColor(i, colorHigh);
-      } else if (i==medLed) {
-         strip.setPixelColor(i, colorMed);
-      } else if (i==lowLed) {
-        strip.setPixelColor(i, colorLow);
-      } else if (i > WHEEL_NUM_LEDS - previousLedInSequence - 1 ) {
-        strip.setPixelColor(i, colorHigh);
-      } else {
-        strip.setPixelColor(i, BLACK_COLOR);
+    if (sequenceUp) {
+      for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
+        if (i == ledInSequence) {
+          strip.setPixelColor(i, colorHigh);
+        } else if (i==medLed) {
+          strip.setPixelColor(i, colorMed);
+        } else if (i==lowLed) {
+          strip.setPixelColor(i, colorLow);
+        } else if (i > WHEEL_NUM_LEDS - previousLedInSequence - 1 ) {
+          strip.setPixelColor(i, colorHigh);
+        } else {
+          strip.setPixelColor(i, BLACK_COLOR);
+        }
+      }
+      ledInSequence++;
+      if (ledInSequence == WHEEL_NUM_LEDS - previousLedInSequence) {
+        ledInSequence = 0;
+        if (previousLedInSequence == WHEEL_NUM_LEDS - 1) {
+          sequenceUp = false;
+          previousLedInSequence = 0;
+        } else {
+          previousLedInSequence++;
+        }
+      }
+    } else {
+
+      const char* sequence = tailSequence[tailSequenceStep];
+
+      for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
+        char ch = sequence[i];
+        uint32_t pixelColor;
+        switch (ch) {
+          case '0':
+            pixelColor = BLACK_COLOR;
+            break;
+          case '1':
+            pixelColor = complColorLow;
+            break;
+          case '2':
+            pixelColor = complColorMed;
+            break;
+          case '3':
+            pixelColor = complColorHigh;
+            break;
+          case '4':
+            pixelColor = colorHigh;
+            break;
+        }
+        strip.setPixelColor(i, pixelColor);
+      }
+      tailSequenceStep++;
+      if (tailSequenceStep == TAIL_SEQUENCE_LENGTH -1) {
+        tailSequenceStep = 0;
+        sequenceUp = true;
       }
     }
-    ledInSequence++;
-    if (ledInSequence == WHEEL_NUM_LEDS - previousLedInSequence) {
-      ledInSequence = 0;
-      if (previousLedInSequence == WHEEL_NUM_LEDS - 1) {
-        previousLedInSequence = 0;
-      } else {
-        previousLedInSequence++;
-      }
-    }
-    
     timeLastSequenceUpdate = time;
     strip.show();
   } 
@@ -750,6 +834,27 @@ void LedController::growingLedSequence() {
   }
 }
 
+
+void LedController::neverEnd() {
+  unsigned long time = millis();
+  if (time - timeLastSequenceUpdate > deltaTimeInLedSequences) {
+    int hsvC = hue;
+    hue += hueIncrement;
+    uint32_t color = strip.ColorHSV(hsvC, 255, 255);
+    phase++;
+    phase%=3;
+    for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
+      if ((i + phase) % 3 == 0) {
+        strip.setPixelColor(i, color);
+      } else {
+        strip.setPixelColor(i, BLACK_COLOR);
+      }
+    }
+    timeLastSequenceUpdate = time;
+    strip.show();
+  } 
+}
+
 void LedController::rgbLoop() {
   unsigned long time = millis();
   if (time - timeLastSequenceUpdate > DELTA_RGB_LOOP) {
@@ -827,6 +932,21 @@ void LedController::circle() {
   }
 }
 
+void LedController::fixedColor() {
+  unsigned long time = millis();
+  if (time - timeLastSequenceUpdate > deltaTimeInLedSequences) {
+    int hsvC = hue;
+    uint32_t color = strip.ColorHSV(hsvC, 255, 255);
+    for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
+      strip.setPixelColor(i, color);
+    }
+    strip.show();
+    timeLastSequenceUpdate = time;
+  }
+}
+
+
+
 
 // used by rainbowCycle and theaterChaseRainbow
 byte* LedController::wheel(byte wheelPos) {
@@ -851,12 +971,19 @@ byte* LedController::wheel(byte wheelPos) {
   return c;
 }
 
-
-
 void LedController::resetAllLeds(Adafruit_NeoPixel* theStrip) {
   for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
     theStrip->setPixelColor(i, BLACK_COLOR);
   }
 }
 
+void LedController::randomize() {
+  unsigned long time = millis();
+  if (time - timeLastRandomCheck > RANDOM_PATTERN_DURATION) {
+    currentRandomPattern = random(PATTERN_MAX_VALUE);
+    timeLastRandomCheck = time;
+  }
+  ledSequence(currentRandomPattern);
+
+}
 #endif

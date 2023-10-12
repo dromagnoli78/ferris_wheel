@@ -7,12 +7,17 @@
 #include <Adafruit_SSD1306.h>
 #include "RTCController.h"
 #include "Images.h"
-#include "SongsController.h"
-#include "CherryCreamSoda_24.h"
+#include "TracksController.h"
+#include "ModeController.h"
 #include "CherryCreamSoda_20.h"
+#include "DSeg7_Classic_12.h"
+#include "DSEG7_Classic_Mini_Regular_20.h"
+#include "Roboto_Condensed_18.h"
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 32  // OLED display height, in pixels
+#define CMD_ONE_COLUMN_SCROLL_H_RIGHT       0x2C
+#define CMD_ONE_COLUMN_SCROLL_H_LEFT        0x2D
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 // The pins for I2C are defined by the Wire-library.
@@ -30,6 +35,9 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define EMPTY_MODE 4
 #define HELLO_MODE 5
 #define FUNCTION_MODE 6
+#define SEQUENCE_MODE 7
+#define SETTINGS_MODE 8
+#define FOLDER_MODE 9
 
 #define SLEEP_FRAMES 5
 class DisplayController {
@@ -50,14 +58,13 @@ private:
   // Control variables
   uint8_t mode = HELLO_MODE;
   uint8_t lastMode;    // Last mode before sleep (for recovery)
-  int songIndex;       // Index of the song currently playing
+  int trackIndex;       // Index of the track currently playing
   int sleepFrame = 0;  // Sleep animation is composed of different frames
-  bool isScrolling = false;
   const char * text;
   bool preSleep = false;  // Pre-sleep phase. Needed for different message
-
-  // Objects
-  
+  int x;
+  int minX;
+  const char* currentFolder = "";
   RTCController rtc;
 
 public:
@@ -69,17 +76,20 @@ public:
   void displayTime();
   void displaySleep();
   void displayPreSleep();
-  void displaySong(int index);
-  void displayText(const char* text, int delay, bool scroll);
+  void displayTrack(int index);
+  void displayFolder(int index);
+  void displayText(const char* text, int delay, bool scroll, int fontsize, int nextMode);
+  void displaySettings(const char* text, int delay);
   void displayNone();
-  void sendMessage(const char* text);
-  void requestNewSong(int songIndex);
+  void sendMessage(const char* text, uint8_t messageMode);
+  void requestNewTrack(int trackIndex);
+  void initDisplayTrack(const char* title);
   void sleeping(bool isSleeping);
-  SongsController* songsController;  // Object used to get song titles.
+  TracksController* tracksController;  // Object used to get song titles.
   ModeController* modeController;
   DisplayController(ModeController* pModeController) {
     timeLastDisplayUpdate = millis();
-    songsController = new SongsController();
+    tracksController = new TracksController();
     modeController = pModeController;
     rtc = RTCController();
   };
@@ -103,6 +113,9 @@ void DisplayController::init() {
   display.setCursor(14, 16);
   display.drawBitmap(0, 0, ciaoNadia, 128, 32, SSD1306_WHITE);
   display.display();
+  x = display.width();
+  minX = -8 * strlen(tracksController->getLongestTrackName());
+  const char* currentFolder = tracksController->getFolder(tracksController->getNumFolders()-1);
 }
 
 void DisplayController::operate() {
@@ -132,10 +145,16 @@ void DisplayController::operate() {
         displayNone();
         break;
       case MUSIC_MODE:
-        displaySong(songIndex);
+        displayTrack(trackIndex);
+        break;
+      case FOLDER_MODE:
+        displayFolder(trackIndex);
         break;
       case FUNCTION_MODE:
-        displayText(text, DELAY_AFTER_MESSAGE, false);
+        displayText(text, DELAY_AFTER_MESSAGE, false, 1, TIME_MODE);
+        break;
+      case SETTINGS_MODE:
+        displaySettings(text, DELAY_AFTER_MESSAGE);
         break;
       case HELLO_MODE:
         displayHello();
@@ -154,9 +173,13 @@ void DisplayController::displayTime() {
         display.drawBitmap(96, 0, rtc.getMinuteImage(), 32, 32, SSD1306_WHITE);
         // Set special font for the clock
         
-        display.setFont(&Cherry_Cream_Soda_Regular_20);
-        display.setCursor(0, 24);
+        display.setFont(&DSEG7_Classic_Mini_Regular_20);
+        display.setCursor(0, 25);
         display.println(rtc.getTimeString());
+        display.display();
+        display.setFont(&DSEG7_Classic_Regular_12);
+        display.setCursor(72, 15);
+        display.println(rtc.getSecondsString());
         display.display();
       } else {
         dbg(rtc.getTimeString());
@@ -164,6 +187,23 @@ void DisplayController::displayTime() {
       timeLastRTCUpdate = time;
     }
   }
+}
+
+void DisplayController::displaySettings(const char* message, int delay){
+  bool doIt = CONTROL_DISPLAY == ENABLED;
+  const char* title = message;
+  unsigned long time = millis();
+  if (CONTROL_DISPLAY == ENABLED) {
+    display.clearDisplay();
+    display.setFont(&Cherry_Cream_Soda_Regular_20);
+    display.setCursor(0, 24);
+    display.println(title);
+    display.display();
+  }
+  if (time - timeMessageBeingShown > delay) {
+    mode = TIME_MODE;
+  }
+  display.stopscroll();
 }
 
 void DisplayController::displayNone() {
@@ -184,23 +224,27 @@ void DisplayController::displayHello() {
   }
 }
 
-void DisplayController::displaySong(int index) {
-  const char* title = songsController->getTrack(index);
-  displayText(title, DELAY_AFTER_SONG, true);
+void DisplayController::displayTrack(int index) {
+  const char* title = tracksController->getTrack(index);
+  displayText(title, DELAY_AFTER_SONG, true, 1, TIME_MODE);
 }
 
-void DisplayController::displayText(const char* message, int delay, bool scroll) {
+void DisplayController::displayFolder(int index) {
+  int folderIndex = tracksController->computeFolderByTrackNumber(index);
+  const char* folderName = tracksController->getFolder(folderIndex+1);
+  displayText(folderName, DELAY_AFTER_FOLDER, true, 1, MUSIC_MODE);
+}
+
+void DisplayController::displayText(const char* message, int delay, bool scroll, int fontsize, int nextMode) {
   bool doIt = CONTROL_DISPLAY == ENABLED;
   const char* title = message;
 
-  if (!isScrolling)
-    if (doIt) {
-      displayMessage(title, 1, scroll);
-    }
+  if (doIt) 
+    displayMessage(title, fontsize, scroll);
   unsigned long time = millis();
   if (time - timeMessageBeingShown > delay) {
-    mode = TIME_MODE;
-    isScrolling = false;
+    mode = nextMode;
+    timeMessageBeingShown = millis();
     if (doIt) display.stopscroll();
   }
 }
@@ -210,29 +254,39 @@ void DisplayController::displayMessage(const char* message, int fontsize, bool s
     display.clearDisplay();
     display.setCursor(0, 2);
     display.setTextSize(fontsize);
-    display.setFont();
-    display.println(message);
-    display.display();
-    if (scroll) {
-      display.startscrollright(0x00, 0x0F);
-      isScrolling = true;
-    }
+    display.setFont(&Roboto_Condensed_18);
+    //display.println(message);
+    //display.display();
+   display.setCursor(x,16); 
+   display.print(message);
+   display.display();
+   x = x - 1; // scroll speed, make more positive to slow down the scroll
+   if(x < minX) x = display.width();
   }
 }
 
-void DisplayController::requestNewSong(int index) {
-  dbg("DisplayController: NextSong");
+void DisplayController::requestNewTrack(int index) {
+  dbg("DisplayController: NextTrack");
   mode = MUSIC_MODE;
-  songIndex = index-1;
+  trackIndex = index-1;
   timeMessageBeingShown = millis();
-  isScrolling = false;
+  const char* folder = tracksController->getFolder(tracksController->computeFolderByTrackNumber(index));
+  if (strcmp(folder, currentFolder) != 0){
+    currentFolder = folder;
+    mode = FOLDER_MODE;
+  }
 }
 
-void DisplayController::sendMessage(const char* message) {
+void DisplayController::initDisplayTrack(const char* title) {
+  dbg("DisplayController: initDisplayTrack");
+  x = display.width();
+  minX = -8 * strlen(title);
+}
+
+void DisplayController::sendMessage(const char* message, uint8_t messageMode) {
   dbg("DisplayController: show Message");
-  mode = FUNCTION_MODE;
+  mode = messageMode;
   timeMessageBeingShown = millis();
-  isScrolling = false;
   text = message;
 }
 
@@ -255,7 +309,6 @@ void DisplayController::displayPreSleep() {
   if (time - timeSleepModeStarted > DELAY_SOFT_START_SLEEP) {
     // Switch to SLEEP MODE after the DELAY
     mode = SLEEP_MODE;
-    isScrolling = false;
   }
 }
 
@@ -307,7 +360,6 @@ void DisplayController::sleeping(bool sleeping) {
     lastMode = mode;
     mode = PRE_SLEEP_MODE;
     timeSleepModeStarted = millis();
-    isScrolling = false;
     preSleep = true;
   } else {
     mode = lastMode;

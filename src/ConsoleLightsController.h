@@ -12,6 +12,16 @@
 #define LED_SLEEP 1
 #define LED_SETTINGS 0
 
+const char* settingsNames[]={
+  "Settings",
+  "Sleep",
+  "Lights",
+  "Stepper",
+  "Music",
+  "Mute", 
+};
+
+
 //#define LED_EYE_1 6
 //#define LED_EYE_2 7
 
@@ -46,6 +56,10 @@ public:
   
   uint8_t getSettings() {
     return settingsLed;
+  }
+
+  const char* getSettingsName() {
+    return settingsNames[settingsLed];
   }
   
   void setSettings(uint8_t settings) {

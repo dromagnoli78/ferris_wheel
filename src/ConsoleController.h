@@ -80,22 +80,24 @@ void ConsoleController::operate() {
   if (CONTROL_CONSOLE == CTL_DISABLED) return;
   isMuted = false;
   unsigned long time = millis();
+
+  // Avoid doing anything if last time here was 30 ms ago
   if (time - timeOfLastCheck < 30) {
     return;
   }
+  
+  // Adjust Led brightness reading the sensor 
   if (time - timeOfLastSensorCheck > DELTA_TIME_SENSOR_CHECK) {
     previousSensorValue = sensorValue;
     sensorValue = analogRead(SENSOR_PIN);
     if (abs(sensorValue - previousSensorValue) > 100) {
-      int brightness = map(sensorValue,0,4096,8,120);
+      int brightness = map(sensorValue,0,4096,15,120);
       ledController->adjustBrightness(brightness);
       consoleLightsController->adjustBrightness(brightness);
       timeOfLastSensorCheck = time;
     }
   }
  
-  
-
   // First let's check the mute
   ButtonInfo* muted = buttonsController->mute();
   if (muted->isClicked()) {
@@ -103,6 +105,8 @@ void ConsoleController::operate() {
     isMuted = musicController->requestMute();
     muted->reset();
     consoleLightsController->mute(!isMuted);
+    const char* mutedText = !isMuted ? "Muted" : "Unmuted";
+    displayController->sendMessage(mutedText, SETTINGS_MODE);
   }
 
   // Next is the settings
@@ -114,6 +118,8 @@ void ConsoleController::operate() {
   if (settings->isClicked()) {
     dbg("ConsoleController: Setting is clicked");
     settings->reset();
+    
+    // Get the current settings position
     u_int8_t settings = consoleLightsController->getSettings();
     u_int8_t ledSetting;
     // Iterate on the ledSettings buttons
@@ -123,12 +129,14 @@ void ConsoleController::operate() {
         if (ledSetting > LED_MUSIC) {
           ledSetting = LED_LIGHTS;
         }
+        // Only consider settings for leds that are ON 
         if (consoleLightsController->isItOn(ledSetting)) {
           break;
         } 
     }
     if (consoleLightsController->isItOn(ledSetting)) {
       consoleLightsController->setSettings(ledSetting);
+      displayController->sendMessage(consoleLightsController->getSettingsName(), SETTINGS_MODE);
     }
   }
 
@@ -140,7 +148,11 @@ void ConsoleController::operate() {
     sleeping->reset();
     if (CONTROL_SLEEP_MODE == ENABLED) {
       isSleeping = !isSleeping;
-      modeController->sleep();
+      if (isSleeping) {
+        modeController->sleep();
+      } else {
+        modeController->working();
+      }
       consoleLightsController->sleeping(isSleeping);
       triggerSleeping = true;
     }
@@ -155,20 +167,21 @@ void ConsoleController::operate() {
         if (!isMuted && !isSleeping) {
           int skip = musicController->computeSkip('N');
           dbg("ConsoleController: Next Song:",  skip);
-          musicController->requestNewSong(skip);
+          musicController->requestNewTrack(skip);
           consoleLightsController->music(true);
         }
         break;
       case LED_LIGHTS:
         dbg("ConsoleController: NextSequence");
         ledController->nextSequence(+1);
-        displayController->sendMessage(ledController->getNextSequenceName());
+        displayController->sendMessage(ledController->getNextSequenceName(), SETTINGS_MODE);
         consoleLightsController->lights(true);
         break;
       case LED_STEPPER:
         dbg("ConsoleController: Step Right");
         stepperController->speedChange('R');
         consoleLightsController->stepper(!stepperController->isItStopped());
+        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
         break;
     }
     right->reset();
@@ -182,20 +195,21 @@ void ConsoleController::operate() {
         if (!isMuted && !isSleeping) {
           int skip = musicController->computeSkip('P');
           dbg("ConsoleController: Next Song:", skip);
-          musicController->requestNewSong(skip);
+          musicController->requestNewTrack(skip);
           consoleLightsController->music(true);
         }
         break;
       case LED_LIGHTS:
         dbg("ConsoleController: prevSequence");
         ledController->nextSequence(-1);
-        displayController->sendMessage(ledController->getNextSequenceName());
+        displayController->sendMessage(ledController->getNextSequenceName(), MUSIC_MODE);
         consoleLightsController->lights(true);
         break;
       case LED_STEPPER:
         dbg("ConsoleController: Step Left");
         stepperController->speedChange('L');
         consoleLightsController->stepper(!stepperController->isItStopped());
+        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
         break;
     }
     left->reset();
@@ -209,7 +223,7 @@ void ConsoleController::operate() {
         if (!isMuted && !isSleeping) {
           int skip = musicController->computeSkip('U');
           dbg("ConsoleController: Next Song:", skip);
-          musicController->requestNewSong(skip);
+          musicController->requestNewTrack(skip);
           consoleLightsController->music(true);
         }
         break;
@@ -217,10 +231,12 @@ void ConsoleController::operate() {
         dbg("ConsoleController: Stepper+");
         stepperController->speedChange('U');
         consoleLightsController->stepper(!stepperController->isItStopped());
+        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
         break;
       case LED_LIGHTS:
         dbg("ConsoleController: Lights+");
-        ledController->speedChange('U');
+        ledController->settingsChange('U');
+        displayController->sendMessage("Lights>>>", SETTINGS_MODE);
         break;
     }
     up->reset();
@@ -234,7 +250,7 @@ void ConsoleController::operate() {
         if (!isMuted && !isSleeping) {
           int skip = musicController->computeSkip('D');
           dbg("ConsoleController: Next Song:", skip);
-          musicController->requestNewSong(skip);
+          musicController->requestNewTrack(skip);
           consoleLightsController->music(true);
         }
         break;
@@ -242,10 +258,12 @@ void ConsoleController::operate() {
         dbg("ConsoleController: Stepper-");
         stepperController->speedChange('D');
         consoleLightsController->stepper(!stepperController->isItStopped());
+        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
         break;
      case LED_LIGHTS:
         dbg("ConsoleController: Lights-");
-        ledController->speedChange('D');
+        ledController->settingsChange('D');
+        displayController->sendMessage("Lights<<<", SETTINGS_MODE);
         break;
 
     }

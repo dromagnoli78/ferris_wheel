@@ -13,6 +13,7 @@ private:
 public:
   void begin();
   char* getTimeString();
+  char* getSecondsString();
   const unsigned char* getHourImage();
   const unsigned char* getMinuteImage();
 };
@@ -45,6 +46,13 @@ char* RTCController::getTimeString() {
   } else {
     sprintf(str, "%02d.%02d", now.hour(), now.minute());
   }
+  colon = !colon;
+  return str;
+}
+
+char* RTCController::getSecondsString() {
+  DateTime now = rtc.now();
+  sprintf(str, "%02d", now.second());
   colon = !colon;
   return str;
 }

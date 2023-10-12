@@ -6,7 +6,7 @@
 #include "ButtonInfo.h"
 #include <Wire.h>
 
-volatile int st = LOW;
+volatile int expanderStatus = LOW;
 volatile bool up = LOW;
 
 
@@ -44,7 +44,7 @@ public:
   void operate();
 
   static void readPortExpander() {
-   st = HIGH;
+   expanderStatus = HIGH;
 }
 
   ButtonInfo* music() {
@@ -108,20 +108,23 @@ void ButtonController::operate() {
   if (CONTROL_BUTTON == CTL_DISABLED) return;
   int lastClickedButton = -1;
 
+  // Reading from the Port expander
   unsigned long time = millis();
-  if (st && (time - interruptCheckedTime) > BUTTON_CONTROLS_DELTA_TIME) {
+  if (expanderStatus && (time - interruptCheckedTime) > BUTTON_CONTROLS_DELTA_TIME) {
     Wire.requestFrom(0x20, 1);
     if (Wire.available()) {
       byte b = Wire.read();
       byte changed = EXPANDER_MASK ^ b;
-      st = LOW;
+      expanderStatus = LOW;
       interruptCheckedTime = time;
       if (changed > 0) {
+        // Get the last clicked button from the changed bit
         lastClickedButton = log2(changed);
         buttons[lastClickedButton].click();
       }
     }
   } else {
+    // Let's cycle on all the buttons
     for (int i = 0; i < NUM_BUTTONS; i++) {
       buttons[i].operate();
       if (buttons[i].isClicked()) {
@@ -130,8 +133,6 @@ void ButtonController::operate() {
     }
   }
 }
-
-
 
 int log2(int x) {
   int result = 0;

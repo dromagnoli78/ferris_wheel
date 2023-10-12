@@ -32,6 +32,10 @@ public:
     void sleep() {
         mode = SLEEPING_MODE;
     }
+
+    void working() {
+        mode = WORKING_MODE;
+    }
 };
 
 
