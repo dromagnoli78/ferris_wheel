@@ -113,6 +113,8 @@ void ConsoleController::operate() {
   ButtonInfo* settings = buttonsController->settings();
   if (settings->isLongPressed()) {
     modeController->settings();
+    displayController->displayHello();
+    settings->reset();
     return;
   }
   if (settings->isClicked()) {

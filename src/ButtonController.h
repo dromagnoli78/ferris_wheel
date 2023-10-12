@@ -93,6 +93,7 @@ void ButtonController::begin() {
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttons[i].begin();
   }
+  settings()->setCustom();
 }
 
 void ButtonController::init() {
