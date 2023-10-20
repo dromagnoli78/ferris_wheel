@@ -8,6 +8,7 @@
 #include "MusicController.h"
 #include "StepperController.h"
 #include "DisplayController.h"
+#include "SettingsController.h"
 #include "ConsoleLightsController.h"
 
 class ConsoleController {
@@ -18,6 +19,7 @@ private:
   unsigned long timeSleepingHasStarted = 0; 
   unsigned long timeOfLastCheck = 0;
   unsigned long timeOfLastSensorCheck = 0;
+  int sleepShutdownTime = SLEEP_SHUTDOWN;
 
   ModeController* modeController;
   ButtonController* buttonsController;
@@ -26,6 +28,7 @@ private:
   StepperController* stepperController;
   DisplayController* displayController;
   ConsoleLightsController* consoleLightsController;
+  SettingsController* settingsController;
   int mode = WORKING_MODE;
   bool isSleeping = false;
   bool isMuted = false;
@@ -42,7 +45,8 @@ public:
     StepperController* pStepperController,
     DisplayController* pDisplayController,
     ButtonController* pButtonsController,
-    ConsoleLightsController* pConsoleLightsController) {
+    ConsoleLightsController* pConsoleLightsController,
+    SettingsController* pSettingsController) {
 
     modeController = pModeController;
     ledController = pLedController;
@@ -51,12 +55,14 @@ public:
     stepperController = pStepperController;
     displayController = pDisplayController;
     consoleLightsController = pConsoleLightsController;
+    settingsController = pSettingsController;
   };
   void init();
   void begin();
   void operate();
+  void operateSettings();
   bool isReadyForSleep(){return readyForSleep;};
-  void settingsMode();
+  void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
 };
 
 void ConsoleController::begin() {
@@ -106,18 +112,24 @@ void ConsoleController::operate() {
     muted->reset();
     consoleLightsController->mute(!isMuted);
     const char* mutedText = !isMuted ? "Muted" : "Unmuted";
-    displayController->sendMessage(mutedText, SETTINGS_MODE);
+    displayController->sendMessage(mutedText, NAMES_MODE);
   }
 
   // Next is the settings
   ButtonInfo* settings = buttonsController->settings();
   if (settings->isLongPressed()) {
-    modeController->settings();
-    displayController->displayHello();
-    settings->reset();
-    return;
-  }
-  if (settings->isClicked()) {
+    if (!modeController->isSettings()) {
+      modeController->settings();
+      displayController->forceMode(REMOTE_MODE);
+      displayController->displayNames("SETTINGS", 4000, REMOTE_MODE);
+      settingsController->init();
+      settings->reset();
+      return;
+    } else {
+      modeController->back();
+      settings->reset();
+    }
+  } else if (settings->isClicked()) {
     dbg("ConsoleController: Setting is clicked");
     settings->reset();
     
@@ -138,7 +150,7 @@ void ConsoleController::operate() {
     }
     if (consoleLightsController->isItOn(ledSetting)) {
       consoleLightsController->setSettings(ledSetting);
-      displayController->sendMessage(consoleLightsController->getSettingsName(), SETTINGS_MODE);
+      displayController->sendMessage(consoleLightsController->getControlLedName(), NAMES_MODE);
     }
   }
 
@@ -176,14 +188,14 @@ void ConsoleController::operate() {
       case LED_LIGHTS:
         dbg("ConsoleController: NextSequence");
         ledController->nextSequence(+1);
-        displayController->sendMessage(ledController->getNextSequenceName(), SETTINGS_MODE);
+        displayController->sendMessage(ledController->getNextSequenceName(), NAMES_MODE);
         consoleLightsController->lights(true);
         break;
       case LED_STEPPER:
         dbg("ConsoleController: Step Right");
         stepperController->speedChange('R');
         consoleLightsController->stepper(!stepperController->isItStopped());
-        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
+        displayController->sendMessage(stepperController->getSpeedSymbol(), NAMES_MODE);
         break;
     }
     right->reset();
@@ -204,14 +216,15 @@ void ConsoleController::operate() {
       case LED_LIGHTS:
         dbg("ConsoleController: prevSequence");
         ledController->nextSequence(-1);
-        displayController->sendMessage(ledController->getNextSequenceName(), MUSIC_MODE);
+        displayController->sendMessage(ledController->getNextSequenceName(), NAMES_MODE);
         consoleLightsController->lights(true);
+
         break;
       case LED_STEPPER:
         dbg("ConsoleController: Step Left");
         stepperController->speedChange('L');
         consoleLightsController->stepper(!stepperController->isItStopped());
-        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
+        displayController->sendMessage(stepperController->getSpeedSymbol(), NAMES_MODE);
         break;
     }
     left->reset();
@@ -233,12 +246,12 @@ void ConsoleController::operate() {
         dbg("ConsoleController: Stepper+");
         stepperController->speedChange('U');
         consoleLightsController->stepper(!stepperController->isItStopped());
-        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
+        displayController->sendMessage(stepperController->getSpeedSymbol(), NAMES_MODE);
         break;
       case LED_LIGHTS:
         dbg("ConsoleController: Lights+");
         ledController->settingsChange('U');
-        displayController->sendMessage("Lights>>>", SETTINGS_MODE);
+        displayController->sendMessage("Lights>>>", NAMES_MODE);
         break;
     }
     up->reset();
@@ -260,12 +273,12 @@ void ConsoleController::operate() {
         dbg("ConsoleController: Stepper-");
         stepperController->speedChange('D');
         consoleLightsController->stepper(!stepperController->isItStopped());
-        displayController->sendMessage(stepperController->getSpeedSymbol(), SETTINGS_MODE);
+        displayController->sendMessage(stepperController->getSpeedSymbol(), NAMES_MODE);
         break;
      case LED_LIGHTS:
         dbg("ConsoleController: Lights-");
         ledController->settingsChange('D');
-        displayController->sendMessage("Lights<<<", SETTINGS_MODE);
+        displayController->sendMessage("Lights<<<", NAMES_MODE);
         break;
 
     }
@@ -342,11 +355,93 @@ void ConsoleController::operate() {
       }
    }
 
-   if (isSleeping && (time - timeSleepingHasStarted > (SLEEP_SHUTDOWN+5000))) {
+   if (isSleeping && (time - timeSleepingHasStarted > (sleepShutdownTime +5000))) {
      Serial.println("ConsoleController ready for sleep");
      consoleLightsController->shutdown();
      readyForSleep = true;
    }
+   timeOfLastCheck = time;
+}
+
+void ConsoleController::operateSettings() {
+  if (CONTROL_CONSOLE == CTL_DISABLED) return;
+  isMuted = false;
+  unsigned long time = millis();
+
+  // Avoid doing anything if last time here was 30 ms ago
+  if (time - timeOfLastCheck < 30) {
+    return;
+  }
+  
+  // Next is the settings
+  ButtonInfo* settings = buttonsController->settings();
+  if (settings->isLongPressed()) {
+    modeController->back();
+    displayController->forceMode(TIME_MODE);
+    settings->reset();
+  } else if (settings->isClicked()) {
+    dbg("ConsoleController: Setting is clicked");
+    settings->reset();
+    consoleLightsController->setBlinkingConfig(BLINKING_SAVING_CONFIG);
+    settingsController->saveValue();
+  }
+
+   // Then let's check the sleeping
+  ButtonInfo* sleeping = buttonsController->sleeping();
+  if (sleeping->isClicked()) {
+    sleeping->reset();
+  }
+
+  ButtonInfo* right = buttonsController->right();
+  if (right->isClicked()) {
+    settingsController->changeSetting(+1);
+    right->reset();
+  }
+
+  ButtonInfo* left = buttonsController->left();
+  if (left->isClicked()) {
+    settingsController->changeSetting(-1);
+    left->reset();
+  }
+
+  ButtonInfo* up = buttonsController->up();
+  if (up->isClicked()) {
+    settingsController->changeValue(+1);
+    up->reset();
+  }
+
+  ButtonInfo* down = buttonsController->down();
+  if (down->isClicked()) {
+    settingsController->changeValue(-1);
+    down->reset();
+  }
+
+
+  ButtonInfo* music = buttonsController->music();
+  if (music->isClicked()) {
+    music->reset();
+  }
+ 
+
+  // Actions on stepper
+  ButtonInfo* stepper = buttonsController->stepper();
+  if (!isSleeping && stepper->isClicked()) {
+    stepper->reset();
+  }
+
+
+  ButtonInfo* lights = buttonsController->lights();
+  if (!isSleeping && lights->isClicked()) {
+    lights->reset();
+  }
+
+  if (CURRENT_MODE > DEBUG_MODE) {
+     if (time - timeOfLastDebug > 30000) {
+      Serial.println("ConsoleController operate");
+      timeOfLastDebug = time;
+      }
+   }
+
    timeOfLastCheck = time;
 }
 

@@ -5,6 +5,7 @@
 #include "ConsoleController.h"
 #include "ConsoleLightsController.h"
 #include "DisplayController.h"
+#include "SettingsController.h"
 #include "ModeController.h"
 #include "Constants.h"
 #include <Arduino.h>
@@ -29,8 +30,8 @@ LedController ledController = LedController();
 StepperController stepperController = StepperController(STEPPER_INIT_SPEED);
 MusicController musicController = MusicController(&displayController);
 ConsoleLightsController consoleLightsController = ConsoleLightsController(&modeController, &musicController);
-
-ConsoleController consoleController = ConsoleController(&modeController, &ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController);
+SettingsController settingsController = SettingsController();
+ConsoleController consoleController = ConsoleController(&modeController, &ledController, &musicController, &stepperController, &displayController, &buttonsController, &consoleLightsController, &settingsController);
 
 void setup() {
   modeController.begin();
@@ -52,6 +53,7 @@ void setup() {
   }
   Serial.println(F("Ready DFPlayer Mini"));
   Serial.println("Setting Up!");
+  settingsController.begin(&displayController, &musicController, &ledController);
   musicController.begin(&mp3Player);
   stepperController.begin();
   buttonsController.begin();
@@ -112,6 +114,25 @@ void doWork() {
 
 }
 
+void settings() {
+  // First let's parse the buttons commands
+  buttonsController.operate();
+
+  // Delegate to the console the operations 
+  consoleController.operateSettings();
+  settingsController.operate();
+
+  //musicController.operate();
+  displayController.operate();
+  //ledController.operate();
+
+  // Last priority is the stepper
+  //stepperController.operate();
+  consoleLightsController.operateSettings();
+  
+
+}
+
 void loop() {
   if (modeController.isStart()){
      initialize();
@@ -122,7 +143,7 @@ void loop() {
   } else if (modeController.isSleeping()) {
     doWork();
   } else if (modeController.isSettings()) {
-    doWork();
+    settings();
   }
 }
 

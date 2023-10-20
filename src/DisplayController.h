@@ -5,14 +5,16 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "RTCController.h"
 #include "Images.h"
-#include "TracksController.h"
-#include "ModeController.h"
 #include "CherryCreamSoda_20.h"
 #include "DSeg7_Classic_12.h"
 #include "DSEG7_Classic_Mini_Regular_20.h"
 #include "Roboto_Condensed_18.h"
+#include "Constants.h"
+
+#include "RTCController.h"
+#include "TracksController.h"
+#include "ModeController.h"
 
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 32  // OLED display height, in pixels
@@ -28,17 +30,6 @@
 #define SCREEN_ADDRESS 0x3C  ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define TIME_MODE 0
-#define MUSIC_MODE 1
-#define PRE_SLEEP_MODE 2
-#define SLEEP_MODE 3
-#define EMPTY_MODE 4
-#define HELLO_MODE 5
-#define FUNCTION_MODE 6
-#define SEQUENCE_MODE 7
-#define SETTINGS_MODE 8
-#define FOLDER_MODE 9
-
 #define SLEEP_FRAMES 5
 class DisplayController {
 private:
@@ -51,9 +42,9 @@ private:
   unsigned long timeSleepModeStarted = 0;     // When sleep Mode started
   unsigned long timeLastRTCUpdate = 0;
   unsigned long timeOfHello=0;
-
+  int sleepShutdownTime = SLEEP_SHUTDOWN;
   int deltaTimeForNextFrame = 200;
-  int deltaTime = 300;
+  int deltaTime = 50;
 
   // Control variables
   uint8_t mode = HELLO_MODE;
@@ -65,6 +56,11 @@ private:
   int x;
   int minX;
   const char* currentFolder = "";
+  int helloModeTime;
+  int settingDelay;
+  int settingFontSize;
+  int settingMode;
+  bool settingScroll;
   RTCController rtc;
 
 public:
@@ -79,12 +75,17 @@ public:
   void displayTrack(int index);
   void displayFolder(int index);
   void displayText(const char* text, int delay, bool scroll, int fontsize, int nextMode);
-  void displaySettings(const char* text, int delay);
+  void displayNames(const char* text, int delay, int nextMode);
+  void displaySettings();
   void displayNone();
+  void forceMode(int iMode){mode = iMode;}
   void sendMessage(const char* text, uint8_t messageMode);
+  void sendSetting(const char* text, int fontsize, bool scroll, int delay, int nextMode);
   void requestNewTrack(int trackIndex);
   void initDisplayTrack(const char* title);
   void sleeping(bool isSleeping);
+  void setHelloModeTime(int iHelloModeTime){helloModeTime = iHelloModeTime;}
+  void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
   TracksController* tracksController;  // Object used to get song titles.
   ModeController* modeController;
   DisplayController(ModeController* pModeController) {
@@ -132,6 +133,9 @@ void DisplayController::operate() {
   // Only update the display every deltaTime intervals
   if (time - timeLastDisplayUpdate > deltaTime) {
     switch (mode) {
+      case DO_NOTHING:
+      case REMOTE_MODE:
+        break;
       case TIME_MODE:
         displayTime();
         break;
@@ -153,13 +157,17 @@ void DisplayController::operate() {
       case FUNCTION_MODE:
         displayText(text, DELAY_AFTER_MESSAGE, false, 1, TIME_MODE);
         break;
-      case SETTINGS_MODE:
-        displaySettings(text, DELAY_AFTER_MESSAGE);
+      case NAMES_MODE:
+        displayNames(text, DELAY_AFTER_MESSAGE, TIME_MODE);
         break;
       case HELLO_MODE:
         displayHello();
         break;
+      case SETTINGS_MODE:
+        displaySettings();
+        break;
     }
+    timeLastDisplayUpdate = time;
   }
 }
 
@@ -172,7 +180,7 @@ void DisplayController::displayTime() {
         display.drawBitmap(96, 0, rtc.getHourImage(), 32, 32, SSD1306_WHITE);
         display.drawBitmap(96, 0, rtc.getMinuteImage(), 32, 32, SSD1306_WHITE);
         // Set special font for the clock
-        
+        display.setTextSize(1);
         display.setFont(&DSEG7_Classic_Mini_Regular_20);
         display.setCursor(0, 25);
         display.println(rtc.getTimeString());
@@ -189,22 +197,7 @@ void DisplayController::displayTime() {
   }
 }
 
-void DisplayController::displaySettings(const char* message, int delay){
-  bool doIt = CONTROL_DISPLAY == ENABLED;
-  const char* title = message;
-  unsigned long time = millis();
-  if (CONTROL_DISPLAY == ENABLED) {
-    display.clearDisplay();
-    display.setFont(&Cherry_Cream_Soda_Regular_20);
-    display.setCursor(0, 24);
-    display.println(title);
-    display.display();
-  }
-  if (time - timeMessageBeingShown > delay) {
-    mode = TIME_MODE;
-  }
-  display.stopscroll();
-}
+
 
 void DisplayController::displayNone() {
   display.clearDisplay();
@@ -219,7 +212,7 @@ void DisplayController::displayHello() {
   if (timeOfHello == 0) {
     timeOfHello = time;
   }
-  if (time - timeOfHello > DELAY_AFTER_HELLO) {
+  if (time - timeOfHello > helloModeTime) {
     mode = TIME_MODE;
   }
 }
@@ -245,25 +238,41 @@ void DisplayController::displayText(const char* message, int delay, bool scroll,
   if (time - timeMessageBeingShown > delay) {
     mode = nextMode;
     timeMessageBeingShown = millis();
-    if (doIt) display.stopscroll();
+  }
+}
+
+void DisplayController::displayNames(const char* message, int delay, int nextMode){
+  bool doIt = CONTROL_DISPLAY == ENABLED;
+  text = message;
+  unsigned long time = millis();
+  if (CONTROL_DISPLAY == ENABLED) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setFont(&Cherry_Cream_Soda_Regular_20);
+    display.setCursor(0, 24);
+    display.println(text);
+    display.display();
+  }
+  if (time - timeMessageBeingShown > delay) {
+    mode = nextMode;
   }
 }
 
 void DisplayController::displayMessage(const char* message, int fontsize, bool scroll) {
+  text = message;
   if (CONTROL_DISPLAY == ENABLED) {
     display.clearDisplay();
     display.setCursor(0, 2);
     display.setTextSize(fontsize);
     display.setFont(&Roboto_Condensed_18);
-    //display.println(message);
-    //display.display();
-   display.setCursor(x,16); 
-   display.print(message);
-   display.display();
-   x = x - 1; // scroll speed, make more positive to slow down the scroll
-   if(x < minX) x = display.width();
+    display.setCursor(x,16); 
+    display.print(message);
+    display.display();
+    x = x - 2; // scroll speed, make more positive to slow down the scroll
+    if(x < minX) x = display.width();
   }
 }
+
 
 void DisplayController::requestNewTrack(int index) {
   dbg("DisplayController: NextTrack");
@@ -288,6 +297,43 @@ void DisplayController::sendMessage(const char* message, uint8_t messageMode) {
   mode = messageMode;
   timeMessageBeingShown = millis();
   text = message;
+  x = display.width();
+}
+
+void DisplayController::sendSetting(const char* message, int fontsize, bool scroll, int delay, int nextMode){
+  dbg("DisplayController: show Message");
+  mode = SETTINGS_MODE;
+  timeMessageBeingShown = millis();
+  timeLastDisplayUpdate = 0;
+  text = message;
+  settingDelay = delay;
+  settingFontSize = fontsize;
+  settingMode = nextMode;
+  settingScroll = scroll;
+}
+
+void DisplayController::displaySettings() {
+  if (CONTROL_DISPLAY == ENABLED) {
+    display.clearDisplay();
+    display.setCursor(0, 2);
+    display.setTextSize(settingFontSize);
+    GFXfont font = settingFontSize == 1 ? Roboto_Condensed_18 : Cherry_Cream_Soda_Regular_20;
+    display.setFont(&font);
+    int offset = settingFontSize == 1 ? 16 : 8;
+    display.setCursor(x,offset); 
+    display.print(text);
+    display.display();
+    if (settingScroll) {
+      x = x - 1; // scroll speed, make more positive to slow down the scroll
+      if (x < minX) x = display.width();
+    }
+  }
+  unsigned long time = millis();
+  if (time - timeMessageBeingShown > settingDelay) {
+    mode = DO_NOTHING;
+    x = display.width();
+    timeMessageBeingShown = millis();
+  }
 }
 
 
@@ -348,7 +394,7 @@ void DisplayController::displaySleep() {
     if (doIt) display.display();
     timeLastSleepFrame = time;
 
-    if (time - timeSleepModeStarted > SLEEP_SHUTDOWN - DELAY_SOFT_START_SLEEP) {
+    if (time - timeSleepModeStarted > sleepShutdownTime - DELAY_SOFT_START_SLEEP) {
       mode = EMPTY_MODE;
     }
   }

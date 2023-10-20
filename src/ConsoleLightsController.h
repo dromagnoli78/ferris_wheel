@@ -3,6 +3,8 @@
 
 #include "Constants.h"
 #include <Adafruit_NeoPixel.h>
+#include "MusicController.h"
+#include "SettingInfo.h"
 
 #define LED_VOLUME 6
 #define LED_MUTE 5
@@ -12,7 +14,13 @@
 #define LED_SLEEP 1
 #define LED_SETTINGS 0
 
-const char* settingsNames[]={
+#define BLINKING_SETTINGS_CONFIG 0
+#define BLINKING_SAVING_CONFIG 1
+
+#define NUM_OF_BLINKING_CONFIGS BLINKING_SAVING_CONFIG + 1
+  
+
+const char* controlLedNames[]={
   "Settings",
   "Sleep",
   "Lights",
@@ -21,25 +29,26 @@ const char* settingsNames[]={
   "Mute", 
 };
 
-
-//#define LED_EYE_1 6
-//#define LED_EYE_2 7
-
 #define CONSOLE_TOTAL_LEDS 7
-//#define LED_EYES_COLOR strip.ColorHSV(40 * 182.04, 255, CONSOLE_LIGHTS_INTENSITY)
 
 class ConsoleLightsController {
 private:
   // timing variables
   unsigned long timeOfLastCheck = 0;
   unsigned long timeOfBlinking = 0;
+  unsigned long timeOfBlinkingPhase = 0;
   unsigned long timeOfLastDebug = 0;
-  bool blinkingSettings = false;
+  unsigned long timeOfLastSaveCheck = 0;
+  BlinkingConfig blinking[NUM_OF_BLINKING_CONFIGS];
+  
+  bool saving = false;
   int brightness = LED_BRIGHTNESS;
   bool leds[CONSOLE_TOTAL_LEDS];
   uint32_t colors[CONSOLE_TOTAL_LEDS];
   uint8_t settingsLed = 0; // Which led should be replicated by the settings
   bool sleepMode = false;
+  int currentBlinkingConfig = BLINKING_SETTINGS_CONFIG;
+  bool blinkingUp = true;
   Adafruit_NeoPixel strip;
   MusicController* musicController;
   ModeController* modeController;
@@ -48,18 +57,22 @@ public:
     musicController = pMusicController;
     modeController = pModeController;
     strip = Adafruit_NeoPixel(CONSOLE_TOTAL_LEDS, CONSOLE_LIGHTS_CONTROLLER_DATA_PIN, NEO_GRB + NEO_KHZ800);
+    blinking[BLINKING_SETTINGS_CONFIG] = BlinkingConfig(BLUE_COLOR, YELLOW_COLOR, DELTA_TIME_BLINK_SETTINGS, DURATION_BLINK_SETTINGS);
+    blinking[BLINKING_SAVING_CONFIG] = BlinkingConfig(RED_COLOR, BLACK_COLOR, DELTA_TIME_BLINK_SAVING, DURATION_BLINK_SAVING);
   };
   void init();
   void begin();
   void operate();
+  void operateSettings();
+  void setBlinkingConfig(int blinkingConfig){currentBlinkingConfig = blinkingConfig; timeOfBlinking = millis();};
   void adjustVolume(int);
   
   uint8_t getSettings() {
     return settingsLed;
   }
 
-  const char* getSettingsName() {
-    return settingsNames[settingsLed];
+  const char* getControlLedName() {
+    return controlLedNames[settingsLed];
   }
   
   void setSettings(uint8_t settings) {
@@ -166,14 +179,6 @@ void ConsoleLightsController::operate() {
   unsigned long time = millis();
   uint32_t color = 0;
   if (time - timeOfLastCheck > DELTA_TIME_CONSOLE_UPDATES) {
-    if (modeController->isSettings()) {
-      if (time - timeOfBlinking > DELTA_TIME_BLINK) {
-        blinkingSettings = !blinkingSettings;
-        colors[LED_SETTINGS] = blinkingSettings ? BLUE_COLOR : YELLOW_COLOR;
-        timeOfBlinking = time;
-      }
-
-    } 
     if (modeController->isSleeping()) {
       // Implement transition
       for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
@@ -190,6 +195,43 @@ void ConsoleLightsController::operate() {
       adjustVolume(volume);
     }
     strip.show();
+    timeOfLastCheck = time;
+  }
+
+  if (CURRENT_MODE > DEBUG_MODE) {
+    if (time - timeOfLastDebug > 30000) {
+      Serial.println("ConsoleLightsController operate");
+      timeOfLastDebug = time;
+    }
+  }
+}
+
+void ConsoleLightsController::operateSettings() {
+  if (CONTROL_CONSOLE_LIGHTS == CTL_DISABLED) return;
+  unsigned long time = millis();
+  uint32_t color = 0;
+  if (time - timeOfLastCheck > DELTA_TIME_CONSOLE_UPDATES) {
+    if (modeController->isSettings()) {
+      BlinkingConfig config = blinking[currentBlinkingConfig];
+      if (time - timeOfBlinkingPhase > config.interval) {
+        blinkingUp = !blinkingUp;
+        color = blinkingUp ? config.colorA : config.colorB;
+        timeOfBlinkingPhase = time;
+        if (config.duration > 0 && time - timeOfBlinking > config.duration){
+          currentBlinkingConfig++;
+          currentBlinkingConfig %= NUM_OF_BLINKING_CONFIGS;
+          timeOfBlinking = time;
+        }
+        for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
+          if (i == LED_SETTINGS) {
+            strip.setPixelColor(i, color);
+           } else {
+            strip.setPixelColor(i,BLACK_COLOR);
+            }
+          strip.show();
+        }
+      }
+    } 
     timeOfLastCheck = time;
   }
 

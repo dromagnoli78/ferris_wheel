@@ -35,12 +35,13 @@ private:
   unsigned long sleepStartTime = 0;
   unsigned long sleepLastCheck = 0;
   unsigned long sleepingStepInterval = 0;
+  int sleepShutdownTime = SLEEP_SHUTDOWN;
+
   int sleepingSteps = 0;
   DFRobotDFPlayerMini* mp3Player;
+public:
   DisplayController* displayController;
   TracksController* tracksController;
-
-public:
   MusicController(DisplayController* pDisplayController){
     displayController = pDisplayController;
     tracksController = displayController->tracksController;
@@ -62,6 +63,7 @@ public:
   bool isPlaying(){return playing;};
   bool isMuted(){return muted;};
   void printDetail(uint8_t type, int value);
+  void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
 };
 
 
@@ -263,7 +265,7 @@ void MusicController::sleeping(bool sleeping){
     if (sleepingSteps == 0) {
       sleepingSteps = 1;
     }
-    sleepingStepInterval = SLEEP_SHUTDOWN / sleepingSteps;
+    sleepingStepInterval = sleepShutdownTime / sleepingSteps;
     dbg("DisplayController: SleepMode triggered with sleepingStepInterval:", sleepingStepInterval);
     if (CONTROL_MUSIC == ENABLED)
       mp3Player->stop();

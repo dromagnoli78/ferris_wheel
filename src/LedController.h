@@ -14,7 +14,6 @@
 #define FRAMES_PER_SECOND 45
 #define RANDOM_PATTERN_DURATION 30000
 
-#define DO_NOTHING 99
 #define REQUEST_OFF 88
 #define REQUEST_ON 77
 
@@ -42,6 +41,8 @@
 #define WHITE_COLOR strip.Color(255, 255, 255)
 #define BLUE_COLOR strip.Color(0, 0, 255)
 #define YELLOW_COLOR strip.Color(255, 255, 0)
+#define GREEN_COLOR strip.Color(0, 255, 0)
+#define RED_COLOR strip.Color(255, 0, 0)
 
 
 const char* sequenceNames[]={
@@ -67,6 +68,7 @@ private:
   unsigned long timeLastRandomCheck=0;
   unsigned long timeSleepHasStarted;
   unsigned long timeSleepStartEffect = 0;
+  int sleepShutdownTime = SLEEP_SHUTDOWN;
   
   int currentDeltaTime = LIGHTS_DELAY;
   int deltaTimeOnLedChange = currentDeltaTime;
@@ -134,6 +136,8 @@ public:
   void sleepingSequence();
   void sleepingSequence2();
   void shutdownSequence();
+    void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
+
   const char* getNextSequenceName() {return sequenceName;};
   
   void adjustBrightness(int value) {
@@ -414,7 +418,7 @@ void LedController::sleepingSequence2() {
       }
     }
     timeLastSleepCheck = time;
-    if (time - timeSleepHasStarted > (SLEEP_SHUTDOWN - 3000)) {
+    if (time - timeSleepHasStarted > (sleepShutdownTime - 3000)) {
       pattern = PATTERN_SHUTDOWN;
     }
     strip.show();

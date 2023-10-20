@@ -6,6 +6,7 @@
 class ModeController {
 private:
     int mode;
+    int previousMode;
 public:
     void begin() {
         if (CURRENT_MODE > DEBUG_MODE) {
@@ -13,16 +14,18 @@ public:
             Serial.println("Setting up");
         }
         mode = START_MODE;
+        previousMode = START_MODE;
     };
     bool isStart(){return mode == START_MODE;}
     bool isSleeping() {return mode == SLEEPING_MODE;}
     bool isSettings() {return mode == SETTING_MODE;}
     bool isWorking() {return mode == WORKING_MODE;}
     bool isOff() {return mode == OFF_MODE;}
-    void settings() {mode = SETTING_MODE;}
-    void sleep() {mode = SLEEPING_MODE;}
-    void working() {mode = WORKING_MODE;}
+    void settings() {previousMode = mode, mode = SETTING_MODE;}
+    void sleep() {previousMode = mode, mode = SLEEPING_MODE;}
+    void working() {previousMode = mode, mode = WORKING_MODE;}
     void off(){mode = OFF_MODE;}
+    void back(){mode = previousMode;}
 };
 
 
@@ -74,5 +77,10 @@ static void dbg(unsigned long value) {
     }
 };
 
-
+static const char* toText(int number){
+    char buffer[30]; 
+    sprintf(buffer, "%d", number);
+    const char* charText = buffer;
+    return charText;
+}
 #endif

@@ -4,6 +4,7 @@
 #include "RTClib.h"
 #include "Constants.h"
 #include "Images.h"
+#include "ModeController.h"
 
 class RTCController {
 private:
