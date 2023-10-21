@@ -2,16 +2,19 @@
 #define SettingInfo_h
 #include <Preferences.h>
 
+#define NOT_INITIALIZED -999
+
 class SettingInfo
 {
   int value;
+  int defaultValue;
   int conversionFactor;
   const char *name;
   const char *memoryName;
 
 public:
-  SettingInfo() : value(-999){};
-  SettingInfo(int iValue, const char *sName, const char *sMemoryName, int iConversionFactor);
+  SettingInfo() : value(NOT_INITIALIZED){};
+  SettingInfo(int iValue, int iDefaultValue, const char *sName, const char *sMemoryName, int iConversionFactor);
   int getValue() { return value; }
   void setValue(int iValue) { value = iValue; }
   const char *getMemoryName() { return memoryName; }
@@ -22,7 +25,7 @@ public:
     preferences->putUInt(getMemoryName(), iValue);
   };
   int reload(Preferences* preferences) {
-    int settingValue = preferences->getUInt(getMemoryName(), 0U);
+    int settingValue = preferences->getUInt(getMemoryName(), defaultValue);
     setValue(settingValue);
     return settingValue;
   };
@@ -30,7 +33,7 @@ public:
   const char *getName() { return name; }
 };
 
-SettingInfo::SettingInfo(int iValue, const char *sName, const char *sMemoryName, int iConversionFactor)
+SettingInfo::SettingInfo(int iValue, int iDefaultValue, const char *sName, const char *sMemoryName, int iConversionFactor)
     : value(iValue), name(sName), memoryName(sMemoryName), conversionFactor(iConversionFactor){};
 
 class BlinkingConfig

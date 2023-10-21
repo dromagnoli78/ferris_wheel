@@ -68,8 +68,7 @@ private:
   unsigned long timeLastRandomCheck=0;
   unsigned long timeSleepHasStarted;
   unsigned long timeSleepStartEffect = 0;
-  int sleepShutdownTime = SLEEP_SHUTDOWN;
-  
+
   int currentDeltaTime = LIGHTS_DELAY;
   int deltaTimeOnLedChange = currentDeltaTime;
   int deltaTimeInLedSequences = currentDeltaTime;
@@ -98,12 +97,24 @@ private:
   int wheelLoops = 0;
   bool speedUp = true;
   bool isSpinning = false;
-  int brightness = LED_BRIGHTNESS;
+  
+
   int hue = 0;
   float breathPhase = 0;
   int tailSequenceStep = 0;
   int phase = 0;
   int hueIncrement = 65536/(WHEEL_LOOPS * 4);
+
+  // Sleep lights
+  int settingSleepMinLight = MIN_VALUE_LIGHT_FOR_SLEEP;
+  int settingSleepMaxLight = MAX_VALUE_LIGHT_FOR_SLEEP;
+  int settingLightsMinDelay = LIGHTS_DELAY_MIN;
+  int settingSleepShutdownTime;
+  int settingLedInitialBrightness = LED_INITIAL_BRIGHTNESS;
+  int brightness = settingLedInitialBrightness;
+  int settingLedMinBrightness;
+  int settingLedMaxBrightness;
+
   Adafruit_NeoPixel strip;
   Adafruit_NeoPixel stripEye;
 
@@ -136,11 +147,18 @@ public:
   void sleepingSequence();
   void sleepingSequence2();
   void shutdownSequence();
-    void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
-
+  void updateSleepShutdownTime(int iSettingSleepShutdownTime){settingSleepShutdownTime = iSettingSleepShutdownTime;}
+  void setSleepMaxLight(int iSettingSleepMaxLight){settingSleepMaxLight = iSettingSleepMaxLight;}
+  void setSleepMinLight(int iSettingSleepMinLight){settingSleepMinLight = iSettingSleepMinLight;}
+  void updateLightsMinDelay(int iSettingLightsMinDelay){settingLightsMinDelay = iSettingLightsMinDelay;}
+  void updateLigthsInitialBrightness(int iSettingLedInitialBrightness){settingLedInitialBrightness = iSettingLedInitialBrightness;}
+  void updateLedMinBrightness(int iMinBrightness){settingLedMinBrightness = iMinBrightness;}
+  void updateLedMaxBrightness(int iMaxBrightness){settingLedMaxBrightness = iMaxBrightness;}
+  
   const char* getNextSequenceName() {return sequenceName;};
   
-  void adjustBrightness(int value) {
+  void adjustBrightness(int sensorValue) {
+    int value = map(sensorValue,0,4096, settingLedMinBrightness, settingLedMaxBrightness);
     brightness = value;
     strip.setBrightness(value);
     stripEye.setBrightness(value-5);
@@ -184,8 +202,8 @@ void LedController::settingsChange(u_char c) {
     case 'U':
       currentDeltaTime-=LIGHTS_DELAY_INCREMENT;
       dbg("Lights speed-up", currentDeltaTime);
-      if (currentDeltaTime < LIGHTS_DELAY_MIN)
-        currentDeltaTime = LIGHTS_DELAY_MIN;
+      if (currentDeltaTime < settingLightsMinDelay)
+        currentDeltaTime = settingLightsMinDelay;
       break;
     case 'D':
       currentDeltaTime+=LIGHTS_DELAY_INCREMENT;
@@ -221,7 +239,7 @@ void LedController::sleeping(bool isSleeping) {
   if (sleepMode) {
     previousPattern = pattern;
     pattern = PATTERN_SLEEPING;
-    rgb_intensity = MAX_VALUE_LIGHT_FOR_SLEEP;
+    rgb_intensity = settingSleepMaxLight;
     stripEye.clear();
     stripEye.show();
     timeSleepHasStarted = millis();
@@ -248,7 +266,7 @@ void LedController::init() {
   dbg("LedController init");
   off = true;
   digitalWrite(ENABLE_POWER_LED, HIGH);
-  strip.setBrightness(LED_BRIGHTNESS);
+  strip.setBrightness(settingLedInitialBrightness);
   for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
     strip.setPixelColor(i, BLACK_COLOR);
   }
@@ -268,7 +286,7 @@ void LedController::init() {
 }
 
 void LedController::initStripEye() {
-  stripEye.setBrightness(LED_BRIGHTNESS-10);
+  stripEye.setBrightness(settingLedInitialBrightness-10);
   stripEye.setPixelColor(0, BLUE_COLOR);
   stripEye.setPixelColor(1, BLUE_COLOR);
   delay(50);
@@ -376,7 +394,7 @@ void LedController::sleepingSequence() {
     breathPhase = 2 * PI * (float)elapsed / (float)DELTA_TIME_SLEEP_BREATH;
   }
 
-  float brightness = 0.5 * (MAX_VALUE_LIGHT_FOR_SLEEP - MIN_VALUE_LIGHT_FOR_SLEEP) * (1.0 + sin(breathPhase)) + MIN_VALUE_LIGHT_FOR_SLEEP;
+  float brightness = 0.5 * (settingSleepMaxLight - settingSleepMinLight) * (1.0 + sin(breathPhase)) + settingSleepMinLight;
   if (currentTime - timeLastSleepCheck >= 20) {
     for (int i = 0; i < 4; i++) {
       strip.setPixelColor(i, BLACK_COLOR);
@@ -402,23 +420,23 @@ void LedController::sleepingSequence2() {
 
     if (fadeIn) {
       rgb_intensity++;
-      if (rgb_intensity == (MIN_VALUE_LIGHT_FOR_SLEEP + SLEEP_THRESHOLD)) {
+      if (rgb_intensity == (settingSleepMinLight + SLEEP_THRESHOLD)) {
         deltaTimeOnSleepBreath = DELTA_SLEEPING_SLOW;
       }
-      if (rgb_intensity == MAX_VALUE_LIGHT_FOR_SLEEP) {
+      if (rgb_intensity == settingSleepMaxLight) {
         fadeIn = false;
       }
     } else {
       rgb_intensity--;
-      if (rgb_intensity == (MIN_VALUE_LIGHT_FOR_SLEEP + SLEEP_THRESHOLD)) {
+      if (rgb_intensity == (settingSleepMinLight + SLEEP_THRESHOLD)) {
         deltaTimeOnSleepBreath = DELTA_SLEEPING_FAST;
       }
-      if (rgb_intensity == MIN_VALUE_LIGHT_FOR_SLEEP) {
+      if (rgb_intensity == settingSleepMinLight) {
         fadeIn = true;
       }
     }
     timeLastSleepCheck = time;
-    if (time - timeSleepHasStarted > (sleepShutdownTime - 3000)) {
+    if (time - timeSleepHasStarted > (settingSleepShutdownTime - 3000)) {
       pattern = PATTERN_SHUTDOWN;
     }
     strip.show();
@@ -437,7 +455,7 @@ void LedController::shutdownSequence() {
     }
 
     rgb_intensity--;
-    if (rgb_intensity == (MIN_VALUE_LIGHT_FOR_SLEEP + SLEEP_THRESHOLD)) {
+    if (rgb_intensity == (settingSleepMinLight + SLEEP_THRESHOLD)) {
       deltaTimeOnSleepBreath = DELTA_SLEEPING_FAST;
     }
     if (rgb_intensity == 0) {
@@ -589,6 +607,7 @@ void LedController::wheelSpinning() {
 }
 
 void LedController::tails() {
+
   unsigned long time = millis();
   if (time - timeLastSequenceUpdate > deltaTimeInLedSequences) {
     int hsvC = hue;

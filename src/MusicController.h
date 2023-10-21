@@ -35,7 +35,7 @@ private:
   unsigned long sleepStartTime = 0;
   unsigned long sleepLastCheck = 0;
   unsigned long sleepingStepInterval = 0;
-  int sleepShutdownTime = SLEEP_SHUTDOWN;
+  int sleepShutdownTime;
 
   int sleepingSteps = 0;
   DFRobotDFPlayerMini* mp3Player;
@@ -63,7 +63,7 @@ public:
   bool isPlaying(){return playing;};
   bool isMuted(){return muted;};
   void printDetail(uint8_t type, int value);
-  void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
+  void updateSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
 };
 
 

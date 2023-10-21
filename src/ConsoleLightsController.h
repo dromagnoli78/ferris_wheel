@@ -42,7 +42,9 @@ private:
   BlinkingConfig blinking[NUM_OF_BLINKING_CONFIGS];
   
   bool saving = false;
-  int brightness = LED_BRIGHTNESS;
+  int settingLedInitialBrightness = LED_INITIAL_BRIGHTNESS;
+  int brightness = settingLedInitialBrightness;
+
   bool leds[CONSOLE_TOTAL_LEDS];
   uint32_t colors[CONSOLE_TOTAL_LEDS];
   uint8_t settingsLed = 0; // Which led should be replicated by the settings
@@ -51,7 +53,10 @@ private:
   bool blinkingUp = true;
   Adafruit_NeoPixel strip;
   MusicController* musicController;
-  ModeController* modeController;
+  ModeController* modeController;  
+  
+  int settingLedMinBrightness;
+  int settingLedMaxBrightness;
 public:
   ConsoleLightsController(ModeController* pModeController, MusicController* pMusicController) {
     musicController = pMusicController;
@@ -65,6 +70,9 @@ public:
   void operate();
   void operateSettings();
   void setBlinkingConfig(int blinkingConfig){currentBlinkingConfig = blinkingConfig; timeOfBlinking = millis();};
+  void updateLigthsInitialBrightness(int iSettingLedInitialBrightness){settingLedInitialBrightness = iSettingLedInitialBrightness;}
+  void updateLedMinBrightness(int iMinBrightness){settingLedMinBrightness = iMinBrightness;}
+  void updateLedMaxBrightness(int iMaxBrightness){settingLedMaxBrightness = iMaxBrightness;}
   void adjustVolume(int);
   
   uint8_t getSettings() {
@@ -108,7 +116,8 @@ public:
     strip.show();
   };
 
-  void adjustBrightness(uint8_t value) {
+  void adjustBrightness(int sensorValue) {
+    int value = map(sensorValue,0,4096, settingLedMinBrightness, settingLedMaxBrightness);
     brightness = value+10;
     strip.setBrightness(value);
   };
@@ -254,7 +263,7 @@ void ConsoleLightsController::begin() {
   dbg("ConsoleLightsController begin");
   strip.begin();
   delay(SETUP_DELAY);  // 3 second delay for recovery
-  strip.setBrightness(LED_BRIGHTNESS);
+  strip.setBrightness(settingLedInitialBrightness);
   for (int i = 0; i < CONSOLE_TOTAL_LEDS; i++) {
     strip.setPixelColor(i, BLACK_COLOR);
   }

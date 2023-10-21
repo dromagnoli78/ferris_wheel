@@ -53,7 +53,7 @@ void setup() {
   }
   Serial.println(F("Ready DFPlayer Mini"));
   Serial.println("Setting Up!");
-  settingsController.begin(&displayController, &musicController, &ledController);
+  settingsController.begin(&displayController, &musicController, &ledController, &consoleLightsController);
   musicController.begin(&mp3Player);
   stepperController.begin();
   buttonsController.begin();

@@ -83,4 +83,18 @@ static const char* toText(int number){
     const char* charText = buffer;
     return charText;
 }
+
+static const char* toText(u_int16_t number){
+    char buffer[30]; 
+    sprintf(buffer, "%d", number);
+    const char* charText = buffer;
+    return charText;
+}
+
+static const char* toText(unsigned int number){
+    char buffer[30]; 
+    sprintf(buffer, "%d", number);
+    const char* charText = buffer;
+    return charText;
+}
 #endif

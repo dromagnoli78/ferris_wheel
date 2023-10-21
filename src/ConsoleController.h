@@ -19,7 +19,6 @@ private:
   unsigned long timeSleepingHasStarted = 0; 
   unsigned long timeOfLastCheck = 0;
   unsigned long timeOfLastSensorCheck = 0;
-  int sleepShutdownTime = SLEEP_SHUTDOWN;
 
   ModeController* modeController;
   ButtonController* buttonsController;
@@ -35,8 +34,7 @@ private:
   bool readyForSleep = false;
   int sensorValue = 0;
   int previousSensorValue = 0;
-
-
+  int settingSleepShutdownTime;
 public:
   ConsoleController(
     ModeController* pModeController,
@@ -62,7 +60,8 @@ public:
   void operate();
   void operateSettings();
   bool isReadyForSleep(){return readyForSleep;};
-  void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
+  void updateSleepShutdownTime(int iShutdownTime){settingSleepShutdownTime = iShutdownTime;}
+
 };
 
 void ConsoleController::begin() {
@@ -97,9 +96,8 @@ void ConsoleController::operate() {
     previousSensorValue = sensorValue;
     sensorValue = analogRead(SENSOR_PIN);
     if (abs(sensorValue - previousSensorValue) > 100) {
-      int brightness = map(sensorValue,0,4096,15,120);
-      ledController->adjustBrightness(brightness);
-      consoleLightsController->adjustBrightness(brightness);
+      ledController->adjustBrightness(sensorValue);
+      consoleLightsController->adjustBrightness(sensorValue);
       timeOfLastSensorCheck = time;
     }
   }
@@ -121,7 +119,7 @@ void ConsoleController::operate() {
     if (!modeController->isSettings()) {
       modeController->settings();
       displayController->forceMode(REMOTE_MODE);
-      displayController->displayNames("SETTINGS", 4000, REMOTE_MODE);
+      displayController->displayNames("SETTINGS", 2, 4000, REMOTE_MODE);
       settingsController->init();
       settings->reset();
       return;
@@ -355,7 +353,7 @@ void ConsoleController::operate() {
       }
    }
 
-   if (isSleeping && (time - timeSleepingHasStarted > (sleepShutdownTime +5000))) {
+   if (isSleeping && (time - timeSleepingHasStarted > (settingSleepShutdownTime +5000))) {
      Serial.println("ConsoleController ready for sleep");
      consoleLightsController->shutdown();
      readyForSleep = true;

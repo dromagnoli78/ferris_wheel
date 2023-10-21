@@ -6,7 +6,9 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "Images.h"
-#include "CherryCreamSoda_20.h"
+//#include "CherryCreamSoda_20.h"
+#include "Cherry_Cream_Soda_Regular_14.h"
+#include "Cherry_Cream_Soda_Regular_20.h"
 #include "DSeg7_Classic_12.h"
 #include "DSEG7_Classic_Mini_Regular_20.h"
 #include "Roboto_Condensed_18.h"
@@ -42,7 +44,7 @@ private:
   unsigned long timeSleepModeStarted = 0;     // When sleep Mode started
   unsigned long timeLastRTCUpdate = 0;
   unsigned long timeOfHello=0;
-  int sleepShutdownTime = SLEEP_SHUTDOWN;
+  int sleepShutdownTime = 0;
   int deltaTimeForNextFrame = 200;
   int deltaTime = 50;
 
@@ -75,7 +77,7 @@ public:
   void displayTrack(int index);
   void displayFolder(int index);
   void displayText(const char* text, int delay, bool scroll, int fontsize, int nextMode);
-  void displayNames(const char* text, int delay, int nextMode);
+  void displayNames(const char* text, int fontSize, int delay, int nextMode);
   void displaySettings();
   void displayNone();
   void forceMode(int iMode){mode = iMode;}
@@ -84,8 +86,8 @@ public:
   void requestNewTrack(int trackIndex);
   void initDisplayTrack(const char* title);
   void sleeping(bool isSleeping);
-  void setHelloModeTime(int iHelloModeTime){helloModeTime = iHelloModeTime;}
-  void setSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
+  void updateHelloModeTime(int iHelloModeTime){helloModeTime = iHelloModeTime;}
+  void updateSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
   TracksController* tracksController;  // Object used to get song titles.
   ModeController* modeController;
   DisplayController(ModeController* pModeController) {
@@ -158,7 +160,7 @@ void DisplayController::operate() {
         displayText(text, DELAY_AFTER_MESSAGE, false, 1, TIME_MODE);
         break;
       case NAMES_MODE:
-        displayNames(text, DELAY_AFTER_MESSAGE, TIME_MODE);
+        displayNames(text, 2, DELAY_AFTER_MESSAGE, TIME_MODE);
         break;
       case HELLO_MODE:
         displayHello();
@@ -241,15 +243,17 @@ void DisplayController::displayText(const char* message, int delay, bool scroll,
   }
 }
 
-void DisplayController::displayNames(const char* message, int delay, int nextMode){
+void DisplayController::displayNames(const char* message, int fontSize, int delay, int nextMode){
   bool doIt = CONTROL_DISPLAY == ENABLED;
   text = message;
   unsigned long time = millis();
   if (CONTROL_DISPLAY == ENABLED) {
     display.clearDisplay();
     display.setTextSize(1);
-    display.setFont(&Cherry_Cream_Soda_Regular_20);
-    display.setCursor(0, 24);
+    GFXfont font = fontSize == 1 ? Cherry_Cream_Soda_Regular_20 : Cherry_Cream_Soda_Regular_14;
+    int offset = fontSize == 1 ? 23 : 25;
+    display.setFont(&font);
+    display.setCursor(0, offset);
     display.println(text);
     display.display();
   }
