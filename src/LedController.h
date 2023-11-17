@@ -20,7 +20,8 @@
 #define PATTERN_SINGLE 0
 #define PATTERN_WHEEL PATTERN_SINGLE + 1
 #define PATTERN_GROWING PATTERN_WHEEL + 1
-#define PATTERN_TAILS PATTERN_GROWING +1 
+#define PATTERN_BACK_AND_FORTH PATTERN_GROWING +1 
+#define PATTERN_TAILS PATTERN_BACK_AND_FORTH +1 
 #define PATTERN_RAINBOW PATTERN_TAILS +1
 #define PATTERN_RGB_LOOP PATTERN_RAINBOW +1
 #define PATTERN_CIRCLE PATTERN_RGB_LOOP +1
@@ -33,8 +34,7 @@
 #define PATTERN_SLEEPING 100
 #define PATTERN_SHUTDOWN 101
 
-
-#define SEQUENCE_PATTERNS 10
+#define SEQUENCE_PATTERNS 11
 #define COLOR_PATTERNS 6
 
 #define BLACK_COLOR strip.Color(0, 0, 0)
@@ -49,6 +49,7 @@ const char* sequenceNames[]={
   "Sequence",
   "Spinning",
   "Growing",
+  "Dribbling",
   "Tails",
   "Rainbow",
   "RGB", 
@@ -74,6 +75,8 @@ private:
   int deltaTimeInLedSequences = currentDeltaTime;
   int deltaTimeOnSleepBreath = DELTA_SLEEPING_SLOW;
   int currentRandomPattern = PATTERN_SINGLE;
+  int randomPatternDuration = RANDOM_PATTERN_DURATION;
+  
 
   uint32_t colorPattern[COLOR_PATTERNS];
   uint32_t currentColorPattern = 0;
@@ -101,7 +104,7 @@ private:
 
   int hue = 0;
   float breathPhase = 0;
-  int tailSequenceStep = 0;
+  int matrixSequenceStep = 0;
   int phase = 0;
   int hueIncrement = 65536/(WHEEL_LOOPS * 4);
 
@@ -134,7 +137,7 @@ public:
   void singleLedSequence();
   void wheelSpinning();
   void growingLedSequence();
-  void tails();
+  void matrixSequence(const char* sequence[], int sequenceLenght);
   void rgbLoop();
   void rainbow();
   void circle();
@@ -154,6 +157,7 @@ public:
   void updateLigthsInitialBrightness(int iSettingLedInitialBrightness){settingLedInitialBrightness = iSettingLedInitialBrightness;}
   void updateLedMinBrightness(int iMinBrightness){settingLedMinBrightness = iMinBrightness;}
   void updateLedMaxBrightness(int iMaxBrightness){settingLedMaxBrightness = iMaxBrightness;}
+  void updateLedRandomPatternDuration(int iRandomDuration){randomPatternDuration = iRandomDuration;}
   
   const char* getNextSequenceName() {return sequenceName;};
   
@@ -240,7 +244,10 @@ void LedController::sleeping(bool isSleeping) {
     previousPattern = pattern;
     pattern = PATTERN_SLEEPING;
     rgb_intensity = settingSleepMaxLight;
-    stripEye.clear();
+    stripEye.setBrightness(settingLedInitialBrightness-10);
+    stripEye.setPixelColor(0, BLACK_COLOR);
+    stripEye.setPixelColor(1, BLACK_COLOR);
+    delay(50);
     stripEye.show();
     timeSleepHasStarted = millis();
     dbg("LedController going to sleep with sleepTime:", timeSleepHasStarted);
@@ -359,8 +366,11 @@ void LedController::ledSequence(int patternSequence) {
     case PATTERN_GROWING:
       growingLedSequence();
       break;
+    case PATTERN_BACK_AND_FORTH:
+      matrixSequence(backAndForthSequence, BACK_AND_FORTH_SEQUENCE_LENGTH);
+      break;
     case PATTERN_TAILS:
-      tails();
+      matrixSequence(tailSequence, TAIL_SEQUENCE_LENGTH);
       break;
     case PATTERN_RAINBOW:
       rainbow();
@@ -606,7 +616,7 @@ void LedController::wheelSpinning() {
   }
 }
 
-void LedController::tails() {
+void LedController::matrixSequence(const char* cSequence[], int fullSequenceLenght) {
 
   unsigned long time = millis();
   if (time - timeLastSequenceUpdate > deltaTimeInLedSequences) {
@@ -621,61 +631,34 @@ void LedController::tails() {
     uint32_t complColorLow = strip.ColorHSV(complHsv, 255, 10);
     byte medLed = ledInSequence - 1;
     byte lowLed = ledInSequence - 2;
-    if (sequenceUp) {
-      for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
-        if (i == ledInSequence) {
-          strip.setPixelColor(i, colorHigh);
-        } else if (i==medLed) {
-          strip.setPixelColor(i, colorMed);
-        } else if (i==lowLed) {
-          strip.setPixelColor(i, colorLow);
-        } else if (i > WHEEL_NUM_LEDS - previousLedInSequence - 1 ) {
-          strip.setPixelColor(i, colorHigh);
-        } else {
-          strip.setPixelColor(i, BLACK_COLOR);
-        }
-      }
-      ledInSequence++;
-      if (ledInSequence == WHEEL_NUM_LEDS - previousLedInSequence) {
-        ledInSequence = 0;
-        if (previousLedInSequence == WHEEL_NUM_LEDS - 1) {
-          sequenceUp = false;
-          previousLedInSequence = 0;
-        } else {
-          previousLedInSequence++;
-        }
-      }
-    } else {
+    const char* sequence = cSequence[matrixSequenceStep];
 
-      const char* sequence = tailSequence[tailSequenceStep];
-
-      for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
-        char ch = sequence[i];
-        uint32_t pixelColor;
-        switch (ch) {
-          case '0':
-            pixelColor = BLACK_COLOR;
-            break;
-          case '1':
-            pixelColor = complColorLow;
-            break;
-          case '2':
-            pixelColor = complColorMed;
-            break;
-          case '3':
-            pixelColor = complColorHigh;
-            break;
-          case '4':
-            pixelColor = colorHigh;
-            break;
-        }
-        strip.setPixelColor(i, pixelColor);
+    for (int i = 0; i < WHEEL_NUM_LEDS; i++) {
+      char ch = sequence[i];
+      uint32_t pixelColor;
+      switch (ch) {
+        case '0':
+          pixelColor = BLACK_COLOR;
+          break;
+        case '1':
+          pixelColor = complColorLow;
+          break;
+        case '2':
+          pixelColor = complColorMed;
+          break;
+        case '3':
+          pixelColor = complColorHigh;
+          break;
+        case '4':
+          pixelColor = colorHigh;
+          break;
       }
-      tailSequenceStep++;
-      if (tailSequenceStep == TAIL_SEQUENCE_LENGTH -1) {
-        tailSequenceStep = 0;
-        sequenceUp = true;
-      }
+      strip.setPixelColor(i, pixelColor);
+    }
+    matrixSequenceStep++;
+    if (matrixSequenceStep == fullSequenceLenght -1) {
+      matrixSequenceStep = 0;
+      sequenceUp = true;
     }
     timeLastSequenceUpdate = time;
     strip.show();
@@ -696,73 +679,7 @@ byte LedController::getMin(byte r, byte g, byte b) {
   min = min < b ? min : b;
   return min;
 }
-/*
-void LedController::growingLedSequence() {
-  unsigned long time = millis();
-  if (time - timeLastSequenceUpdate > deltaTimeInLedSequences) {
-    if (sequenceUp) {
-      if (!shrink) {
-        for (int i = 0; i <= ledInSequence; i++) {
-          strip.setPixelColor(i, colorPattern[currentColorPattern]);
-        }
-        for (int i = ledInSequence + 1; i < WHEEL_NUM_LEDS; i++) {
-          strip.setPixelColor(i, BLACK_COLOR);
-        }
-        ledInSequence++;
-        if (ledInSequence == WHEEL_NUM_LEDS) {
-          shrink = true;
-          ledInSequence = 0;
-        }
-      } else {
-        for (int i = ledInSequence; i < WHEEL_NUM_LEDS; i++) {
-          strip.setPixelColor(i, colorPattern[currentColorPattern]);
-        }
-        for (int i = 0; i < ledInSequence; i++) {
-          strip.setPixelColor(i, BLACK_COLOR);
-        }
-        ledInSequence++;
-        if (ledInSequence == WHEEL_NUM_LEDS) {
-          shrink = false;
-          sequenceUp = false;
-          ledInSequence--;
-        }
-      }
 
-    } else {
-      if (!shrink) {
-        for (int i = WHEEL_NUM_LEDS - 1; i >= ledInSequence; i--) {
-          strip.setPixelColor(i, colorPattern[currentColorPattern]);
-        }
-        for (int i = ledInSequence - 1; i >= 0; i--) {
-          strip.setPixelColor(i, BLACK_COLOR);
-        }
-        ledInSequence--;
-        if (ledInSequence == 0) {
-          shrink = true;
-          ledInSequence = WHEEL_NUM_LEDS - 1;
-        }
-      } else {
-        for (int i = ledInSequence; i >= 0; i--) {
-          strip.setPixelColor(i, colorPattern[currentColorPattern]);
-        }
-        for (int i = WHEEL_NUM_LEDS - 1; i > ledInSequence; i--) {
-          strip.setPixelColor(i, BLACK_COLOR);
-        }
-        ledInSequence--;
-        if (ledInSequence == 0) {
-          shrink = false;
-          sequenceUp = true;
-          currentColorPattern++;
-          currentColorPattern %= COLOR_PATTERNS;
-        }
-      }
-    }
-
-    timeLastSequenceUpdate = time;
-    strip.show();
-  }
-}
-*/
 /** 
  * Special case for i==4 and i==5 since we are going to growing
  * symmetrically with respect to the arm
@@ -1002,7 +919,7 @@ void LedController::resetAllLeds(Adafruit_NeoPixel* theStrip) {
 
 void LedController::randomize() {
   unsigned long time = millis();
-  if (time - timeLastRandomCheck > RANDOM_PATTERN_DURATION) {
+  if (time - timeLastRandomCheck > randomPatternDuration) {
     currentRandomPattern = random(PATTERN_MAX_VALUE);
     timeLastRandomCheck = time;
   }

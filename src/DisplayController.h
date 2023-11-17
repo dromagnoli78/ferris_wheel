@@ -272,7 +272,7 @@ void DisplayController::displayMessage(const char* message, int fontsize, bool s
     display.setCursor(x,16); 
     display.print(message);
     display.display();
-    x = x - 2; // scroll speed, make more positive to slow down the scroll
+    x = x - 3; // scroll speed, make more positive to slow down the scroll
     if(x < minX) x = display.width();
   }
 }

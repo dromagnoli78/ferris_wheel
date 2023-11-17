@@ -11,19 +11,13 @@ const char* tracks[]={
 "Johann Strauss - Radetzky march",
 "Johannes Brahms - Hungarian dance N5",
 "Johannes Brahms - Lullaby",
-"Carnevale 1921 - Su la coppa di Champagne",
-"Carnevale 1922 - Maschereide",
-"Carnevale 1924 - Carnevale a Viareggio",
-"Carnevale 1924 - Risveglio dopo l'orgia",
-"Carnevale 1928 - Carnevale ai Bagni",
-"Carnevale 1929 - Spiaggia D'Or",
-"Carnevale 1932 - Carnevale di Baci",
-"Carnevale 1933 - Canto del Carnevale",
-"Carnevale 1935 - Ballata a Viareggio",
-"Carnevale 1982 - Un'Onda Scivola",
-"Carnevale 1983 - Che grande Idea",
-"Carnevale 1983 - Polvere di sole",
-"Carnevale 1987 - Come un Coriandolo",
+"Beck Bennet Scarlett Johansson - I dont wanna",
+"Katy Perry - Firework",
+"Taylor Swift - Shake It Off",
+"Scarlett Johansson - Set It All Free",
+"Shawn Mendes - There s Nothing Holding Me Back",
+"Taron Egerton - I m Still Standing",
+"Stevie Wonder Feat. Ariana Grande - Faith",
 "Facciamo un Pupazzo Insieme",
 "Oggi per la Prima Volta",
 "All'Alba sorgero'",
@@ -33,7 +27,7 @@ const char* tracks[]={
 "Fai cio' che e' giusto",
 "Qualche cosa non cambia mai",
 "La famiglia Madrigal",
-"La pressione sale",
+"La Pressione sale",
 "Un Miracolo",
 "Non si nomina Bruno",
 "Cos'Altro Faro'",
@@ -47,35 +41,59 @@ const char* tracks[]={
 "La Bella e la Bestia",
 "In fondo al mar",
 "Dargen D'Amico - Dove Si Balla",
+"David Guetta ft Zara Larsson - This One is For You",
+"Annalisa - Bellissima",
+"Annalisa - Mon amour",
+"Ariana Grande - Break Free",
+"Gigi D'Agostino - L'amour Toujours",
+"Jingle Bells",
+"White Christmas",
+"Dean Martin - Let It Snow! Let It Snow! Let It Snow!",
+"Mariah Carey - All I Want For Christmas Is You",
+"Carnevale 1921 - Su la coppa di Champagne",
+"Carnevale 1922 - Maschereide",
+"Carnevale 1924 - Carnevale a Viareggio",
+"Carnevale 1924 - Risveglio dopo l'orgia",
+"Carnevale 1928 - Carnevale ai Bagni",
+"Carnevale 1929 - Spiaggia D'Or",
+"Carnevale 1932 - Carnevale di Baci",
+"Carnevale 1933 - Canto del Carnevale",
+"Carnevale 1935 - Ballata a Viareggio",
+"Carnevale 1982 - Un'Onda Scivola",
+"Carnevale 1983 - Che grande Idea",
+"Carnevale 1983 - Polvere di sole",
+"Carnevale 1987 - Come un Coriandolo",
 "Johannes Brahms - Lullaby",
 };
 
 const char* folders[]={
 "Classiche",
-"Carnevale",
+"Sing",
 "Frozen",
 "Encanto",
 "Oceania",
 "Rapunzel",
 "Disney",
 "Dance",
+"Natale",
+"Carnevale",
 "Lullaby",
 };
 
-const int tracksPerFolder[9]= {9,13,8,5,3,4,2,1,1};
+const int tracksPerFolder[11]= {9,7,8,5,3,4,2,6,4,13,1};
 class TracksController {
 public:
   TracksController(){};
   const char* getTrack(int i) {return tracks[i];};
   const char* getFolder(int i) {return folders[i];};
-  const int getNumFolders(){return 9;};
+  const int getNumFolders(){return 11;};
   const int* getTracksPerFolder(){ return tracksPerFolder;};
   const int getTracksPerFolder(int i){ return tracksPerFolder[i];};
-  const int getLastTrack(){ return 46;};
+  const int getLastTrack(){ return 62;};
   int computeNextFolder(int currentTrack);
   int computePreviousFolder(int currentTrack);
   int computeFolderByTrackNumber(int currentTrack);
-  const char* getLongestTrackName() {return "Carnevale 1921 - Su la coppa di Champagne";}
+  const char* getLongestTrackName() {return "Dean Martin - Let It Snow! Let It Snow! Let It Snow!";}
 };
 
 int TracksController::computeNextFolder(int currentTrack) {

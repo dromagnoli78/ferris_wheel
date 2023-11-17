@@ -79,6 +79,7 @@ void ConsoleController::init() {
     delay(5);
   }
   sensorValue = sValue / 10;
+  settingSleepShutdownTime = settingsController->getSleepShutdownTime();
 }
 
 void ConsoleController::operate() {
@@ -95,7 +96,7 @@ void ConsoleController::operate() {
   if (time - timeOfLastSensorCheck > DELTA_TIME_SENSOR_CHECK) {
     previousSensorValue = sensorValue;
     sensorValue = analogRead(SENSOR_PIN);
-    if (abs(sensorValue - previousSensorValue) > 100) {
+    if (!isSleeping && abs(sensorValue - previousSensorValue) > 100) {
       ledController->adjustBrightness(sensorValue);
       consoleLightsController->adjustBrightness(sensorValue);
       timeOfLastSensorCheck = time;
@@ -441,6 +442,7 @@ void ConsoleController::operateSettings() {
    }
 
    timeOfLastCheck = time;
+
 }
 
 #endif

@@ -4,6 +4,8 @@
 
 #define NOT_INITIALIZED -999
 
+const char* NO_LABEL = nullptr;
+
 class SettingInfo
 {
   int value;
@@ -11,15 +13,28 @@ class SettingInfo
   int conversionFactor;
   const char *name;
   const char *memoryName;
+  const char ** labels;
+  int numLabels = 0;
+  int delta = 0;
 
 public:
   SettingInfo() : value(NOT_INITIALIZED){};
-  SettingInfo(int iValue, int iDefaultValue, const char *sName, const char *sMemoryName, int iConversionFactor);
+  SettingInfo(int iValue, int iDefaultValue, const char *sName, const char *sMemoryName, int iConversionFactor, int iDelta, int iNumLabels, const char* cLabels[]);
   int getValue() { return value; }
   void setValue(int iValue) { value = iValue; }
   const char *getMemoryName() { return memoryName; }
   int getConversionFactor() { return conversionFactor; }
   int getMachineValue() { return getValue() * getConversionFactor(); }
+  int getNumLabels() {return numLabels;}
+  int getDelta(){return delta;}
+  const char* getLabel(int index) {
+    if (labels != nullptr && index >= 0 && index < numLabels) {
+      return labels[index];
+    } else {
+      return NO_LABEL;
+    }
+  }
+
   void store(Preferences* preferences, int iValue) {
     setValue(iValue);
     preferences->putUInt(getMemoryName(), iValue);
@@ -33,8 +48,9 @@ public:
   const char *getName() { return name; }
 };
 
-SettingInfo::SettingInfo(int iValue, int iDefaultValue, const char *sName, const char *sMemoryName, int iConversionFactor)
-    : value(iValue), name(sName), memoryName(sMemoryName), conversionFactor(iConversionFactor){};
+SettingInfo::SettingInfo(int iValue, int iDefaultValue, const char *sName, const char *sMemoryName, 
+  int iConversionFactor, int iDelta, int iNumLabels, const char* cLabels[])
+    : value(iValue), name(sName), memoryName(sMemoryName), conversionFactor(iConversionFactor), delta(iDelta), numLabels(iNumLabels), labels(cLabels){};
 
 class BlinkingConfig
 {

@@ -36,6 +36,7 @@ private:
   unsigned long sleepLastCheck = 0;
   unsigned long sleepingStepInterval = 0;
   int sleepShutdownTime;
+  int equalizer;
 
   int sleepingSteps = 0;
   DFRobotDFPlayerMini* mp3Player;
@@ -64,6 +65,8 @@ public:
   bool isMuted(){return muted;};
   void printDetail(uint8_t type, int value);
   void updateSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
+  void updateEqualizer(int iEqualizer){
+    equalizer = iEqualizer;}
 };
 
 
@@ -118,7 +121,7 @@ void MusicController::init() {
   numFolders = tracksController->getNumFolders();
   sleepTrack = lastTrack;
 
-  mp3Player->EQ(DFPLAYER_EQ_CLASSIC);
+  mp3Player->EQ(equalizer);
   lastVolumeCheckTime = time;
   lastPlayCheckTime = time;
   if (CURRENT_MODE > DEBUG_MODE){

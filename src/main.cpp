@@ -61,7 +61,6 @@ void setup() {
   displayController.begin();
   consoleLightsController.begin();
   consoleController.begin();
-  
 
 }
 
