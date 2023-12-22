@@ -45,6 +45,7 @@ private:
   unsigned long timeLastRTCUpdate = 0;
   unsigned long timeOfHello=0;
   int sleepShutdownTime = 0;
+  int sleepDisplayShutdownTime = 0;
   int deltaTimeForNextFrame = 200;
   int deltaTime = 50;
 
@@ -88,6 +89,8 @@ public:
   void sleeping(bool isSleeping);
   void updateHelloModeTime(int iHelloModeTime){helloModeTime = iHelloModeTime;}
   void updateSleepShutdownTime(int iShutdownTime){sleepShutdownTime = iShutdownTime;}
+  void updateSleepDisplayShutdownTime(int iShutdownTime){sleepDisplayShutdownTime = iShutdownTime;}
+  void updateDaylight(int daylightOffset) {rtc.updateDaylight(daylightOffset);};
   TracksController* tracksController;  // Object used to get song titles.
   ModeController* modeController;
   DisplayController(ModeController* pModeController) {
@@ -399,6 +402,10 @@ void DisplayController::displaySleep() {
     timeLastSleepFrame = time;
 
     if (time - timeSleepModeStarted > sleepShutdownTime - DELAY_SOFT_START_SLEEP) {
+      mode = EMPTY_MODE;
+    }
+
+    if (time - timeSleepModeStarted > 60000) {
       mode = EMPTY_MODE;
     }
   }

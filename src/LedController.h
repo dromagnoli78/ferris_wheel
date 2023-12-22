@@ -88,6 +88,8 @@ private:
   int rgbSequence = 0;
   int repeated = 0;
   int sequenceRequest = 0;
+  int sleepStartPixel = 0;
+  int sleepEndPixel = WHEEL_NUM_LEDS - 1;
   bool sequenceUp = true;
   const char* sequenceName = sequenceNames[0];
   
@@ -117,6 +119,9 @@ private:
   int brightness = settingLedInitialBrightness;
   int settingLedMinBrightness;
   int settingLedMaxBrightness;
+  int settingEyeLedMinBrightness;
+  int settingEyeLedMaxBrightness;
+  int settingSleepSequence;
 
   Adafruit_NeoPixel strip;
   Adafruit_NeoPixel stripEye;
@@ -157,15 +162,24 @@ public:
   void updateLigthsInitialBrightness(int iSettingLedInitialBrightness){settingLedInitialBrightness = iSettingLedInitialBrightness;}
   void updateLedMinBrightness(int iMinBrightness){settingLedMinBrightness = iMinBrightness;}
   void updateLedMaxBrightness(int iMaxBrightness){settingLedMaxBrightness = iMaxBrightness;}
+  void updateEyeLedMinBrightness(int iMinBrightness){settingEyeLedMinBrightness = iMinBrightness;}
+  void updateEyeLedMaxBrightness(int iMaxBrightness){settingEyeLedMaxBrightness = iMaxBrightness;}
   void updateLedRandomPatternDuration(int iRandomDuration){randomPatternDuration = iRandomDuration;}
-  
+  void resetSleepSequence(){sleepEndPixel = WHEEL_NUM_LEDS -1; sleepStartPixel = 0;}
+  void updateSleepSequence(int iSettingSleepSequence){
+    settingSleepSequence = iSettingSleepSequence;
+    sleepStartPixel = settingSleepSequence == 0 ? 0 : 4;
+    sleepEndPixel = WHEEL_NUM_LEDS - 1;
+    }
+
   const char* getNextSequenceName() {return sequenceName;};
   
   void adjustBrightness(int sensorValue) {
     int value = map(sensorValue,0,4096, settingLedMinBrightness, settingLedMaxBrightness);
+    int eyeValue = map(sensorValue,0,4096, settingEyeLedMinBrightness, settingEyeLedMaxBrightness);
     brightness = value;
     strip.setBrightness(value);
-    stripEye.setBrightness(value-5);
+    stripEye.setBrightness(eyeValue);
     stripEye.setPixelColor(0, BLUE_COLOR);
     stripEye.setPixelColor(1, BLUE_COLOR);
     stripEye.show();
@@ -339,6 +353,7 @@ void LedController::operate() {
       shutdownSequence();
       break;
     default:
+      resetSleepSequence();
       ledSequence(pattern);
   }
 }
@@ -396,6 +411,7 @@ void LedController::ledSequence(int patternSequence) {
 void LedController::sleepingSequence() {
   unsigned long currentTime = millis();
   unsigned long elapsed = currentTime - timeSleepStartEffect;
+  unsigned long fromStart = currentTime - timeSleepHasStarted;
 
   if (elapsed >= DELTA_TIME_SLEEP_BREATH) {
     timeSleepStartEffect = currentTime;
@@ -405,15 +421,38 @@ void LedController::sleepingSequence() {
   }
 
   float brightness = 0.5 * (settingSleepMaxLight - settingSleepMinLight) * (1.0 + sin(breathPhase)) + settingSleepMinLight;
+  int i1 = settingSleepSequence == 0 ? 4 : sleepStartPixel;
+  int i2 = settingSleepSequence == 0 ? 7 : sleepEndPixel;
+
   if (currentTime - timeLastSleepCheck >= 20) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < i1; i++) {
       strip.setPixelColor(i, BLACK_COLOR);
     }
-    for (int i = 4; i < WHEEL_NUM_LEDS; i++) {
-      strip.setPixelColor(i, strip.Color(0, 0, (uint8_t)(brightness)));
+    for (int i = i1; i <= i2; i++) {
+
+      strip.setPixelColor(i, strip.Color((uint8_t)(i < 4? brightness - 7 : brightness), 0, 0));
     }
     strip.show();
     timeLastSleepCheck = currentTime;
+  }
+  if (settingSleepSequence == 1) {
+    long deltaSleepShutdownDecrement = settingSleepShutdownTime / 8;
+    if (fromStart > deltaSleepShutdownDecrement*6) {
+        sleepStartPixel = 5;
+        sleepEndPixel = 6;
+    } else if (fromStart > deltaSleepShutdownDecrement * 4){
+        sleepStartPixel = 4;
+        sleepEndPixel = 7;
+    } else if (fromStart > deltaSleepShutdownDecrement * 3){
+        sleepStartPixel = 3;
+        sleepEndPixel = 7;
+    } else if (fromStart > deltaSleepShutdownDecrement * 2){
+        sleepStartPixel = 2;
+        sleepEndPixel = 7;
+    } else if (fromStart > deltaSleepShutdownDecrement){
+        sleepStartPixel = 1;
+        sleepEndPixel = 7;
+    } 
   }
 }
 

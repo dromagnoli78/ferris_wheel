@@ -23,19 +23,23 @@
 
 #define SETTING_HELLO_MODE_TIME_IDX 0
 #define SETTING_SLEEP_TIME_IDX 1
-#define SETTING_SLEEP_MIN_LIGHT_IDX 2
-#define SETTING_SLEEP_MAX_LIGHT_IDX 3
-#define SETTING_LIGHTS_MIN_DELAY_IDX 4
-#define SETTING_LEDS_INITIAL_BRIGHTNESS_IDX 5
-#define SETTING_LEDS_MIN_BRIGHTNESS_IDX 6
-#define SETTING_LEDS_MAX_BRIGHTNESS_IDX 7
-#define SETTING_CLEDS_MIN_BRIGHTNESS_IDX 8
-#define SETTING_CLEDS_MAX_BRIGHTNESS_IDX 9
-#define SETTING_EQUALIZER_IDX 10
-#define SETTING_RANDOM_IDX 11
-#define SETTING_CLOCK_HOUR_IDX 12
-#define SETTING_CLOCK_MINUTE_IDX 13
-#define NUM_SETTINGS 14
+#define SETTING_SLEEP_DISPLAY_TIME_IDX 2
+#define SETTING_SLEEP_MIN_LIGHT_IDX 3
+#define SETTING_SLEEP_MAX_LIGHT_IDX 4
+#define SETTING_SLEEP_SEQUENCE_IDX 5
+#define SETTING_LIGHTS_MIN_DELAY_IDX 6
+#define SETTING_LEDS_INITIAL_BRIGHTNESS_IDX 7
+#define SETTING_LEDS_MIN_BRIGHTNESS_IDX 8
+#define SETTING_LEDS_MAX_BRIGHTNESS_IDX 9
+#define SETTING_CLEDS_MIN_BRIGHTNESS_IDX 10
+#define SETTING_CLEDS_MAX_BRIGHTNESS_IDX 11
+#define SETTING_EYELEDS_MIN_BRIGHTNESS_IDX 12
+#define SETTING_EYELEDS_MAX_BRIGHTNESS_IDX 13
+#define SETTING_EQUALIZER_IDX 14
+#define SETTING_RANDOM_IDX 15
+#define SETTING_CLOCK_HOUR_IDX 16
+#define SETTING_CLOCK_MINUTE_IDX 17
+#define NUM_SETTINGS 18
 
 const char* EQUALIZERS[]={
   "NORMAL",
@@ -46,6 +50,15 @@ const char* EQUALIZERS[]={
   "BASS",
 };
 
+const char* DAYLIGHTS[]={
+  "WINTER",
+  "SUMMER",
+};
+
+const char* SLEEP_SEQUENCES[]={
+  "CIRCLE",
+  "PROGRESS",
+};
 
 #define DFPLAYER_EQ_NORMAL 0
 #define DFPLAYER_EQ_POP 1
@@ -53,6 +66,9 @@ const char* EQUALIZERS[]={
 #define DFPLAYER_EQ_JAZZ 3
 #define DFPLAYER_EQ_CLASSIC 4
 #define DFPLAYER_EQ_BASS 5
+
+#define SLEEP_SEQ_CIRCLE 0
+#define SLEEP_SEQ_PROGRESS 1
 
 
 class SettingsController {
@@ -67,6 +83,7 @@ private:
   int nextPhase = DO_NOTHING;
   int showType = SHOW_VALUE;
   int sleepShutdownTime;
+  int sleepDisplayShutdownTime;
   const char* labelValue = "";
   SettingInfo settings[NUM_SETTINGS];
   DisplayController* displayController;
@@ -83,19 +100,23 @@ public:
  Preferences preferences;
   
   SettingsController() {
-    settings[SETTING_HELLO_MODE_TIME_IDX] = SettingInfo(NOT_INITIALIZED, DELAY_AFTER_HELLO, "Hello T[s]", "hellotime", 1000U, 1, 0, nullptr);
-    settings[SETTING_SLEEP_TIME_IDX] = SettingInfo(NOT_INITIALIZED, SLEEP_SHUTDOWN_TIME, "Sleep T[s]", "sleeptime", 1000U, 10, 0, nullptr);
+    settings[SETTING_HELLO_MODE_TIME_IDX] = SettingInfo(NOT_INITIALIZED, DELAY_AFTER_HELLO, "Hello T", "hellotime", 1000U, 1, 0, nullptr);
+    settings[SETTING_SLEEP_TIME_IDX] = SettingInfo(NOT_INITIALIZED, SLEEP_SHUTDOWN_TIME, "Sleep T", "sleeptime", 1000U, 30, 0, nullptr);
+    settings[SETTING_SLEEP_DISPLAY_TIME_IDX] = SettingInfo(NOT_INITIALIZED, SLEEP_SHUTDOWN_DISPLAY_TIME, "SleepDisp T", "sleepdisptime", 1000U, 10, 0, nullptr);
     settings[SETTING_SLEEP_MIN_LIGHT_IDX] = SettingInfo(NOT_INITIALIZED, MIN_VALUE_LIGHT_FOR_SLEEP, "Sleep minLIT", "sleepminlight", 1U, 1, 0, nullptr);
     settings[SETTING_SLEEP_MAX_LIGHT_IDX] = SettingInfo(NOT_INITIALIZED, MAX_VALUE_LIGHT_FOR_SLEEP, "Sleep maxLIT", "sleepmaxlight", 1U, 1, 0, nullptr);
-    settings[SETTING_LIGHTS_MIN_DELAY_IDX] = SettingInfo(NOT_INITIALIZED, LIGHTS_DELAY_MIN, "Led MinDLY", "lightsmindelay", 1U, 10, 0, nullptr);
+    settings[SETTING_SLEEP_SEQUENCE_IDX] = SettingInfo(NOT_INITIALIZED, 0, "Sleep SEQ", "sleepsequence", 1U, 1, 2, SLEEP_SEQUENCES);
+    settings[SETTING_LIGHTS_MIN_DELAY_IDX] = SettingInfo(NOT_INITIALIZED, LIGHTS_DELAY_MIN, "Led MinDLY", "lightsmindelay", 1U, 5, 0, nullptr);
     settings[SETTING_LEDS_INITIAL_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_INITIAL_BRIGHTNESS, "Led initLIT", "ledstartlit", 1U, 1, 0, nullptr);
     settings[SETTING_LEDS_MIN_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_MIN_BRIGHTNESS, "Led minLIT", "ledminlit", 1U, 1, 0, nullptr);
     settings[SETTING_LEDS_MAX_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_MAX_BRIGHTNESS, "Led maxLIT", "ledmaxlit", 1U, 1, 0, nullptr);
     settings[SETTING_CLEDS_MIN_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_MIN_BRIGHTNESS, "CLed minLIT", "cledminlit", 1U, 1, 0, nullptr);
     settings[SETTING_CLEDS_MAX_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_MAX_BRIGHTNESS, "CLed maxLIT", "cledmaxlit", 1U, 1, 0, nullptr);
+    settings[SETTING_EYELEDS_MIN_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_MIN_BRIGHTNESS, "ELed minLIT", "eledminlit", 1U, 1, 0, nullptr);
+    settings[SETTING_EYELEDS_MAX_BRIGHTNESS_IDX] = SettingInfo(NOT_INITIALIZED, LED_MAX_BRIGHTNESS, "ELed maxLIT", "eledmaxlit", 1U, 1, 0, nullptr);
     settings[SETTING_EQUALIZER_IDX] = SettingInfo(NOT_INITIALIZED, EQUALIZER, "Equalizer", "equalizer", 1U, 1, 6, EQUALIZERS);
-    settings[SETTING_RANDOM_IDX] = SettingInfo(NOT_INITIALIZED, RANDOM_PATTERN_DURATION, "Rnd T[s]", "randomt", 1U, 10, 0, nullptr);
-    settings[SETTING_CLOCK_HOUR_IDX] = SettingInfo(NOT_INITIALIZED, 1, "hour", "clockh", 1U, 1, 0, nullptr);
+    settings[SETTING_RANDOM_IDX] = SettingInfo(NOT_INITIALIZED, RANDOM_PATTERN_DURATION, "Rnd T[s]", "randomt", 1000U, 5, 0, nullptr);
+    settings[SETTING_CLOCK_HOUR_IDX] = SettingInfo(NOT_INITIALIZED, 0, "H Offset", "hoffset", 1U, 1, 2, DAYLIGHTS);
     settings[SETTING_CLOCK_MINUTE_IDX] = SettingInfo(NOT_INITIALIZED, 60, "minute", "clockm", 1U, 1, 0, nullptr);
 
   };
@@ -104,18 +125,23 @@ public:
   void changeValue(int change);
   SettingInfo* prepareSettings(boolean reload, int settingIndex);
   void notifySleepShutdownTime(boolean reload);
-  void notifyHelloTime(boolean reload);
-  void notifyUpdates();
+  void notifySleepDisplayShutdownTime(boolean reload);
   void notifySleepMaxLight(boolean reload);
   void notifySleepMinLight(boolean reload);
+  void notifySleepSequence(boolean reload);
+  void notifyHelloTime(boolean reload);
+  void notifyUpdates();
   void notifyLightsMinDelay(boolean reload);
   void notifyLedInitialBrightness(boolean reload);
   void notifyLedMinBrightness(boolean reload);
   void notifyLedMaxBrightness(boolean reload);
   void notifyCLedMinBrightness(boolean reload);
   void notifyCLedMaxBrightness(boolean reload);
+  void notifyEyeLedMinBrightness(boolean reload);
+  void notifyEyeLedMaxBrightness(boolean reload);
   void notifyLedRandomDuration(boolean reload);
   void notifyEqualizer(boolean reload);
+  void notifyClock(boolean reload);
 
   int getSleepShutdownTime(){return sleepShutdownTime;};
  };
@@ -153,6 +179,9 @@ void SettingsController::notifyUpdates(){
       case SETTING_SLEEP_MIN_LIGHT_IDX:
         notifySleepMinLight(false);
         break;
+      case SETTING_SLEEP_SEQUENCE_IDX:
+        notifySleepSequence(false);
+        break;
       case SETTING_LIGHTS_MIN_DELAY_IDX:
         notifyLightsMinDelay(false);
         break;
@@ -165,14 +194,23 @@ void SettingsController::notifyUpdates(){
       case SETTING_LEDS_MAX_BRIGHTNESS_IDX:
         notifyLedMaxBrightness(false);
         break;
-       case SETTING_CLEDS_MIN_BRIGHTNESS_IDX:
+      case SETTING_CLEDS_MIN_BRIGHTNESS_IDX:
         notifyCLedMinBrightness(false);
         break;
       case SETTING_CLEDS_MAX_BRIGHTNESS_IDX:
         notifyCLedMaxBrightness(false);
         break;
+      case SETTING_EYELEDS_MIN_BRIGHTNESS_IDX:
+        notifyEyeLedMinBrightness(false);
+        break;
+      case SETTING_EYELEDS_MAX_BRIGHTNESS_IDX:
+        notifyEyeLedMaxBrightness(false);
+        break;
       case SETTING_EQUALIZER_IDX:
         notifyEqualizer(false);
+        break;
+      case SETTING_CLOCK_HOUR_IDX:
+        notifyClock(false);
         break;
       case SETTING_RANDOM_IDX:
         notifyLedRandomDuration(false);
@@ -219,12 +257,18 @@ void SettingsController::begin(DisplayController* pDisplayController, MusicContr
   notifySleepShutdownTime(true);
   notifySleepMaxLight(true);
   notifySleepMinLight(true);
+  notifySleepDisplayShutdownTime(true);
+  notifySleepSequence(true);
   notifyLightsMinDelay(true);
   notifyLedInitialBrightness(true);
   notifyLedMinBrightness(true);
   notifyCLedMinBrightness(true);
+  notifyEyeLedMinBrightness(true);
   notifyLedMaxBrightness(true);
   notifyCLedMaxBrightness(true);
+  notifyEyeLedMaxBrightness(true);
+  notifyLedRandomDuration(true);
+  notifyClock(true);
   notifyEqualizer(true);
   
 };
@@ -257,6 +301,18 @@ void SettingsController::notifyEqualizer(boolean reload){
   musicController->updateEqualizer(equalizer);  
 };
 
+void SettingsController::notifySleepSequence(boolean reload){
+  SettingInfo* setting = prepareSettings(reload, SETTING_SLEEP_SEQUENCE_IDX);
+  int sequence = setting->getMachineValue();
+  ledController->updateSleepSequence(sequence);  
+};
+
+void SettingsController::notifyClock(boolean reload){
+  SettingInfo* setting = prepareSettings(reload, SETTING_CLOCK_HOUR_IDX);
+  int daylightOffset = setting->getMachineValue();
+  displayController->updateDaylight(daylightOffset);  
+};
+
 void SettingsController::notifyLedRandomDuration(boolean reload){
   SettingInfo* setting = prepareSettings(reload, SETTING_RANDOM_IDX);
   int duration = setting->getMachineValue();
@@ -269,6 +325,12 @@ void SettingsController::notifySleepShutdownTime(boolean reload){
   displayController->updateSleepShutdownTime(sleepShutdownTime);
   musicController->updateSleepShutdownTime(sleepShutdownTime);
   ledController->updateSleepShutdownTime(sleepShutdownTime);
+};
+
+void SettingsController::notifySleepDisplayShutdownTime(boolean reload){
+  SettingInfo* setting = prepareSettings(reload, SETTING_SLEEP_DISPLAY_TIME_IDX);
+  sleepDisplayShutdownTime = setting->getMachineValue();
+  displayController->updateSleepDisplayShutdownTime(sleepDisplayShutdownTime);
 };
 
 void SettingsController::notifyLedInitialBrightness(boolean reload){
@@ -302,6 +364,18 @@ void SettingsController::notifyCLedMaxBrightness(boolean reload){
   consoleLightsController->updateLedMaxBrightness(brightness+10);
 };
 
+void SettingsController::notifyEyeLedMinBrightness(boolean reload){
+  SettingInfo* setting = prepareSettings(reload, SETTING_EYELEDS_MIN_BRIGHTNESS_IDX);
+  int brightness = setting->getMachineValue();
+  ledController->updateEyeLedMaxBrightness(brightness);
+};
+
+void SettingsController::notifyEyeLedMaxBrightness(boolean reload){
+  SettingInfo* setting = prepareSettings(reload, SETTING_EYELEDS_MAX_BRIGHTNESS_IDX);
+  int brightness = setting->getMachineValue();
+  ledController->updateEyeLedMaxBrightness(brightness);
+};
+
 void SettingsController::notifySleepMaxLight(boolean reload){
   SettingInfo* setting = prepareSettings(reload, SETTING_SLEEP_MAX_LIGHT_IDX);
   ledController->setSleepMaxLight(setting->getMachineValue());
@@ -329,8 +403,8 @@ void SettingsController::operate(){
       }
       break;
     case SHOW_SETTING_NAME:
-      displayController->displayNames(setting.getName(), 2, 1000, REMOTE_MODE);
-      standby(1000, READ_VALUE);
+      displayController->displayNames(setting.getName(), 2, 400, REMOTE_MODE);
+      standby(400, READ_VALUE);
       break;
     case READ_VALUE:
       intValue = setting.reload(& preferences);

@@ -11,12 +11,15 @@ private:
   char str[8];
   bool colon = true;
   RTC_DS1307 rtc;
+  int daylight;
 public:
   void begin();
   char* getTimeString();
   char* getSecondsString();
   const unsigned char* getHourImage();
   const unsigned char* getMinuteImage();
+  void updateDaylight(int iDaylight){daylight = iDaylight;};
+  int computeHour(DateTime now);
 };
 
 void RTCController::begin() {
@@ -33,19 +36,29 @@ void RTCController::begin() {
       dbg("RTC is NOT running, let's set the time!");
     // When time needs to be set on a new device, or after a power loss, the
     // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     // This line sets the RTC with an explicit date & time, for example to set
     // January 21, 2014 at 3am you would call:
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+    rtc.adjust(DateTime(2023, 12, 22, 0, 41, 0));
   }
+}
+
+int RTCController::computeHour(DateTime now){
+  int hour = now.hour() + daylight;
+  if (hour > 23) {
+    hour = 0;
+  }
+  return hour;
 }
 
 char* RTCController::getTimeString() {
   DateTime now = rtc.now();
+  int minute = now.minute();
+  int hour = computeHour(now);
   if (colon) {
-    sprintf(str, "%02d:%02d", now.hour(), now.minute());
+    sprintf(str, "%02d:%02d", hour + daylight , minute);
   } else {
-    sprintf(str, "%02d.%02d", now.hour(), now.minute());
+    sprintf(str, "%02d.%02d", hour + daylight, minute);
   }
   colon = !colon;
   return str;
@@ -61,7 +74,7 @@ char* RTCController::getSecondsString() {
 const unsigned char* RTCController::getHourImage() {
   DateTime now = rtc.now();
   int minute = now.minute();
-  int hour = now.hour();
+  int hour = computeHour(now);
   // Let's add one hour if the minutes are > 45
   if (minute > 45)
     hour++;

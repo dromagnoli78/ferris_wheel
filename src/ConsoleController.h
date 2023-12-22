@@ -79,6 +79,7 @@ void ConsoleController::init() {
     delay(5);
   }
   sensorValue = sValue / 10;
+  ledController->adjustBrightness(sensorValue);
   settingSleepShutdownTime = settingsController->getSleepShutdownTime();
 }
 
