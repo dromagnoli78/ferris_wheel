@@ -119,9 +119,11 @@ private:
   int brightness = settingLedInitialBrightness;
   int settingLedMinBrightness;
   int settingLedMaxBrightness;
+  int settingLedDeltaBrightness;
   int settingEyeLedMinBrightness;
   int settingEyeLedMaxBrightness;
   int settingSleepSequence;
+  int settingSleepColor;
 
   Adafruit_NeoPixel strip;
   Adafruit_NeoPixel stripEye;
@@ -162,6 +164,7 @@ public:
   void updateLigthsInitialBrightness(int iSettingLedInitialBrightness){settingLedInitialBrightness = iSettingLedInitialBrightness;}
   void updateLedMinBrightness(int iMinBrightness){settingLedMinBrightness = iMinBrightness;}
   void updateLedMaxBrightness(int iMaxBrightness){settingLedMaxBrightness = iMaxBrightness;}
+  void updateLedDeltaBrightness(int iDeltaBrightness){settingLedDeltaBrightness = iDeltaBrightness;}
   void updateEyeLedMinBrightness(int iMinBrightness){settingEyeLedMinBrightness = iMinBrightness;}
   void updateEyeLedMaxBrightness(int iMaxBrightness){settingEyeLedMaxBrightness = iMaxBrightness;}
   void updateLedRandomPatternDuration(int iRandomDuration){randomPatternDuration = iRandomDuration;}
@@ -171,6 +174,7 @@ public:
     sleepStartPixel = settingSleepSequence == 0 ? 0 : 4;
     sleepEndPixel = WHEEL_NUM_LEDS - 1;
     }
+  void updateSleepColor(int iSleepColor) {settingSleepColor = iSleepColor;};
 
   const char* getNextSequenceName() {return sequenceName;};
   
@@ -428,9 +432,28 @@ void LedController::sleepingSequence() {
     for (int i = 0; i < i1; i++) {
       strip.setPixelColor(i, BLACK_COLOR);
     }
-    for (int i = i1; i <= i2; i++) {
 
-      strip.setPixelColor(i, strip.Color((uint8_t)(i < 4? brightness - 7 : brightness), 0, 0));
+    uint8_t componentColor = brightness;
+    uint8_t componentColorLess = brightness - settingLedDeltaBrightness;
+
+    uint32_t color;
+    uint32_t lessColor;
+    switch (settingSleepColor) {
+      case 0:
+        color = strip.Color(componentColor, 0, 0);
+        lessColor = strip.Color(componentColorLess, 0, 0);
+        break;
+      case 1:
+        color = strip.Color(0, 0, componentColor);
+        lessColor = strip.Color(0,0, componentColorLess);
+        break;
+      case 2:
+        color = strip.Color(componentColor, 0, componentColor);
+        lessColor = strip.Color(componentColorLess,0, componentColorLess);
+        break;  
+    }
+    for (int i = i1; i <= i2; i++) {
+      strip.setPixelColor(i, i < 4? color : lessColor);
     }
     strip.show();
     timeLastSleepCheck = currentTime;
